@@ -1,5 +1,5 @@
 :root {
-  --bg: #0e1113;
+  --bg: #000000;
   --fg: #e6e6e6;
   --muted: #9aa0a6;
   --accent: #ffb000;
@@ -29,11 +29,11 @@ html, body {
 
 .card {
   width: 100%;
-  background: rgba(255,255,255,0.02);
+  background: rgba(3, 13, 71, 0.801);
   border-radius: 10px;
   padding: 16px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.45);
-  border: 1px solid rgba(255,255,255,0.03);
+  box-shadow: 0 6px 18px rgba(38, 134, 25, 0.781);
+  border: 1px solid rgba(79, 23, 209, 0.877);
 }
 
 

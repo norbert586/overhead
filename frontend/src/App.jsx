@@ -40,7 +40,7 @@ export default function App() {
     <div className="app">
       <div className="card">
         <header className="header">
-          FLIGHT INTELLIGENCE LOG
+          FLIGHT INTELLIGENCE LOGS
         </header>
 
         <div className="controls">
