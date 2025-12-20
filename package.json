@@ -1,0 +1,10 @@
+{
+  "name": "flight-intelligence-log",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"cd backend && python -m app.main\" \"cd frontend && npm run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
