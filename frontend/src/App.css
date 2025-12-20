@@ -13,10 +13,27 @@ html, body {
   font-family: Inter, system-ui, sans-serif;
 }
 
+html, body {
+  height: 100%;
+}
+
 .app {
   padding: 24px 16px;
-  max-width: 900px;
+  max-width: 980px;
   margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card {
+  width: 100%;
+  background: rgba(255,255,255,0.02);
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.03);
 }
 
 
@@ -32,15 +49,18 @@ html, body {
 .list {
   font-family: "IBM Plex Mono", monospace;
   font-size: 13px;
+  max-height: 56vh;
+  overflow: auto;
+  padding-right: 4px;
 }
 
 .row {
   display: grid;
   grid-template-columns:
     80px   /* time */
-    100px  /* callsign */
-    80px   /* type */
-    100px  /* route */
+    120px  /* callsign */
+    110px  /* type */
+    minmax(120px, 1fr) /* route */
     90px   /* altitude */
     80px;  /* distance */
   gap: 12px;
@@ -50,6 +70,15 @@ html, body {
 
 .row:hover {
   background: rgba(255, 255, 255, 0.02);
+}
+
+.row[tabindex] {
+  outline: none;
+}
+
+.row:focus {
+  background: rgba(255, 176, 0, 0.06);
+  box-shadow: inset 0 0 0 2px rgba(255,176,0,0.06);
 }
 
 .time {
@@ -65,4 +94,30 @@ html, body {
 .altitude,
 .distance {
   color: var(--muted);
+}
+
+.controls {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.search {
+  flex: 1 1 auto;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.03);
+  color: var(--fg);
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.search::placeholder {
+  color: var(--muted);
+}
+
+.empty {
+  color: var(--muted);
+  padding: 28px 12px;
+  text-align: center;
 }
