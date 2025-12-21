@@ -4,44 +4,82 @@ import "./app.css";
 export default function App() {
   const [flights, setFlights] = useState([]);
   const [query, setQuery] = useState("");
+  const [expandedId, setExpandedId] = useState(null);
+  const [photoCache, setPhotoCache] = useState({});
 
+  /* -----------------------------
+     Fetch flight list
+  ------------------------------ */
   useEffect(() => {
-    fetch("http://localhost:8080/api/flights?limit=50")
-      .then((res) => res.json())
-      .then(setFlights)
-      .catch(console.error);
-
-    const interval = setInterval(() => {
+    const fetchFlights = () => {
       fetch("http://localhost:8080/api/flights?limit=50")
         .then((res) => res.json())
         .then(setFlights)
         .catch(console.error);
-    }, 5000);
+    };
 
+    fetchFlights();
+    const interval = setInterval(fetchFlights, 5000);
     return () => clearInterval(interval);
   }, []);
 
+  /* -----------------------------
+     Lazy aircraft photo loader
+  ------------------------------ */
+  const loadPhotoForReg = async (reg) => {
+    if (!reg || photoCache[reg]) return;
+
+    try {
+      const res = await fetch(
+        `https://api.planespotters.net/pub/photos/reg/${reg}`
+      );
+      const data = await res.json();
+
+      const photo =
+        data.photos && data.photos.length > 0
+          ? data.photos[0]
+          : null;
+
+      setPhotoCache((prev) => ({
+        ...prev,
+        [reg]: photo,
+      }));
+    } catch (err) {
+      setPhotoCache((prev) => ({
+        ...prev,
+        [reg]: null,
+      }));
+    }
+  };
+
+  /* -----------------------------
+     Filtering
+  ------------------------------ */
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return flights;
-    return flights.filter((f) => {
-      return (
-        (f.callsign && f.callsign.toLowerCase().includes(q)) ||
-        (f.reg && f.reg.toLowerCase().includes(q)) ||
-        (f.type_code && f.type_code.toLowerCase().includes(q)) ||
-        (f.model && f.model.toLowerCase().includes(q)) ||
-        (f.origin_iata && f.origin_iata.toLowerCase().includes(q)) ||
-        (f.dest_iata && f.dest_iata.toLowerCase().includes(q))
-      );
-    });
+
+    return flights.filter((f) =>
+      [
+        f.callsign,
+        f.reg,
+        f.type_code,
+        f.model,
+        f.origin_iata,
+        f.dest_iata,
+      ]
+        .filter(Boolean)
+        .some((v) => v.toLowerCase().includes(q))
+    );
   }, [flights, query]);
 
+  /* -----------------------------
+     Render
+  ------------------------------ */
   return (
     <div className="app">
       <div className="card">
-        <header className="header">
-          FLIGHT INTELLIGENCE LOGS
-        </header>
+        <header className="header">FLIGHT INTELLIGENCE LOGS</header>
 
         <div className="controls">
           <input
@@ -54,52 +92,160 @@ export default function App() {
         </div>
 
         <div className="list" role="list">
-          {filtered.length === 0 ? (
-            <div className="empty">No flights — try widening your filter.</div>
-          ) : (
-            filtered.map((f, i) => (
-              <div
-                key={f.id ?? i}
-                className="row"
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") console.log("open", f);
-                }}
-                onClick={() => console.log("open", f)}
-              >
-                <span className="time">
-                  {new Date(f.last_seen).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                  })}
-                </span>
-
-                <span className="callsign">
-                  {f.callsign || f.reg || "UNKNOWN"}
-                </span>
-
-                <span className="type">
-                  {f.type_code || f.model || "—"}
-                </span>
-
-                <span className="route">
-                  {f.origin_iata && f.dest_iata
-                    ? `${f.origin_iata}→${f.dest_iata}`
-                    : "—"}
-                </span>
-
-                <span className="altitude">
-                  {f.altitude_ft === "ground" ? "GND" : `${f.altitude_ft}ft`}
-                </span>
-
-                <span className="distance">
-                  {f.distance_nm?.toFixed(1)}nm
-                </span>
-              </div>
-            ))
+          {filtered.length === 0 && (
+            <div className="empty">
+              No flights — try widening your filter.
+            </div>
           )}
+
+          {filtered.map((f, i) => {
+            const isOpen = expandedId === f.id;
+
+            return (
+              <div key={f.id ?? i}>
+                <div
+                  className="row"
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={isOpen}
+                  onClick={() =>
+                    setExpandedId(isOpen ? null : f.id)
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      setExpandedId(isOpen ? null : f.id);
+                    }
+                  }}
+                >
+                  <span className="time">
+                    {new Date(f.last_seen).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      second: "2-digit",
+                    })}
+                  </span>
+
+                  <span className="callsign">
+                    {f.callsign || f.reg || "UNKNOWN"}
+                  </span>
+
+                  <span className="type">
+                    {f.type_code || f.model || "—"}
+                  </span>
+
+                  <span className="route">
+                    {f.origin_iata && f.dest_iata
+                      ? `${f.origin_iata}→${f.dest_iata}`
+                      : "—"}
+                  </span>
+
+                  <span className="altitude">
+                    {f.altitude_ft === "ground"
+                      ? "GND"
+                      : `${f.altitude_ft}ft`}
+                  </span>
+
+                  <span className="distance">
+                    {f.distance_nm?.toFixed(1)}nm
+                  </span>
+                </div>
+
+                {isOpen && (
+                  <div className="inspection">
+                    <div className="inspection-layout">
+                      {/* LEFT */}
+                      <div className="inspection-grid">
+                        <span className="label">Aircraft</span>
+                        <span className="value">
+                          {f.model || f.type_code || "—"}
+                        </span>
+
+                        <span className="label">Manufacturer</span>
+                        <span className="value">
+                          {f.manufacturer || "—"}
+                        </span>
+
+                        <span className="label">Owner / Operator</span>
+                        <span className="value">
+                          {f.airline_name || f.owner || "—"}
+                        </span>
+
+                        <span className="label">Registration</span>
+                        <span className="value">{f.reg || "—"}</span>
+
+                        <span className="spacer" />
+
+                        <span className="label">Origin</span>
+                        <span className="value">
+                          {f.origin_iata
+                            ? `${f.origin_iata} — ${f.origin_name || ""}`
+                            : "—"}
+                        </span>
+
+                        <span className="label">Destination</span>
+                        <span className="value">
+                          {f.dest_iata
+                            ? `${f.dest_iata} — ${f.dest_name || ""}`
+                            : "—"}
+                        </span>
+
+                        <span className="spacer" />
+
+                        <span className="label">First Seen</span>
+                        <span className="value">{f.first_seen}</span>
+
+                        <span className="label">Last Seen</span>
+                        <span className="value">{f.last_seen}</span>
+
+                        <span className="label">Times Seen</span>
+                        <span className="value">{f.times_seen}</span>
+                      </div>
+
+                      {/* RIGHT */}
+                      <div className="photo-column">
+                        {!photoCache[f.reg] && (
+                          <button
+                            className="load-photo"
+                            onClick={() =>
+                              loadPhotoForReg(f.reg)
+                            }
+                          >
+                            Load aircraft photo
+                          </button>
+                        )}
+
+                        {photoCache[f.reg]?.thumbnail_large && (
+                          <div className="photo-wrapper">
+                            <img
+                              src={
+                                photoCache[f.reg]
+                                  .thumbnail_large.src
+                              }
+                              alt={`Aircraft ${f.reg}`}
+                            />
+                            <a
+                              href={photoCache[f.reg].link}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="photo-credit"
+                            >
+                              Photo via Planespotters
+                            </a>
+                          </div>
+                        )}
+
+                        {photoCache[f.reg] === null && (
+                          <div className="no-photo">
+                            No reference photo available
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
