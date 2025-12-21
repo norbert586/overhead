@@ -2,21 +2,22 @@ import { useEffect, useMemo, useState } from "react";
 import "./app.css";
 import Stats from "./Stats";
 
+const API_BASE = "http://192.168.86.234:8080"; // change to LAN IP if needed
 
 export default function App() {
   const [flights, setFlights] = useState([]);
   const [query, setQuery] = useState("");
-  const [expandedId, setExpandedId] = useState(null);
+  const [expandedId, setExpandedId] = useState(null); // null | "ALL" | flight.id
   const [photoCache, setPhotoCache] = useState({});
   const [view, setView] = useState("live"); // "live" | "stats"
-
+  const [expandingAll, setExpandingAll] = useState(false);
 
   /* -----------------------------
      Fetch flight list
   ------------------------------ */
   useEffect(() => {
     const fetchFlights = () => {
-      fetch("http://localhost:8080/api/flights?limit=150")
+      fetch(`${API_BASE}/api/flights?limit=150`)
         .then((res) => res.json())
         .then(setFlights)
         .catch(console.error);
@@ -48,7 +49,7 @@ export default function App() {
         ...prev,
         [reg]: photo,
       }));
-    } catch (err) {
+    } catch {
       setPhotoCache((prev) => ({
         ...prev,
         [reg]: null,
@@ -56,19 +57,40 @@ export default function App() {
     }
   };
 
+  /* -----------------------------
+     Expand / Collapse All
+  ------------------------------ */
+  const toggleExpandAll = async () => {
+    if (expandedId === "ALL") {
+      setExpandedId(null);
+      return;
+    }
+
+    setExpandedId("ALL");
+    setExpandingAll(true);
+
+    for (const f of filtered) {
+      if (f.reg && !photoCache[f.reg]) {
+        await loadPhotoForReg(f.reg);
+        await new Promise((r) => setTimeout(r, 300));
+      }
+    }
+
+    setExpandingAll(false);
+  };
+
+  /* -----------------------------
+     Helpers
+  ------------------------------ */
   const seenIndicator = (count) => {
-  if (count >= 10) return " ✦";
-  if (count >= 6) return " ••";
-  if (count >= 3) return " •";
-  return "";
-};
+    if (count >= 10) return " ✦";
+    if (count >= 6) return " ••";
+    if (count >= 3) return " •";
+    return "";
+  };
 
-const flagUrl = (iso) => {
-  if (!iso) return null;
-  return `https://flagcdn.com/w20/${iso.toLowerCase()}.png`;
-};
-
-
+  const flagUrl = (iso) =>
+    iso ? `https://flagcdn.com/w20/${iso.toLowerCase()}.png` : null;
 
   /* -----------------------------
      Filtering
@@ -100,20 +122,30 @@ const flagUrl = (iso) => {
         {/* HEADER */}
         <header className="header">
           <span>FLIGHT INTELLIGENCE</span>
-          <nav className="nav">
-            <button
-              className={view === "live" ? "nav-active" : ""}
-              onClick={() => setView("live")}
-            >
-              LIVE
-            </button>
-            <button
-              className={view === "stats" ? "nav-active" : ""}
-              onClick={() => setView("stats")}
-            >
-              STATS
-            </button>
-          </nav>
+            <nav className="nav">
+              <button
+                className={view === "live" ? "nav-active" : ""}
+                onClick={() => setView("live")}
+              >
+                LIVE
+              </button>
+              <button
+                className={view === "stats" ? "nav-active" : ""}
+                onClick={() => setView("stats")}
+              >
+                STATS
+              </button>
+
+              {/* Expand / collapse glyph */}
+              <button
+                className="expand-glyph"
+                onClick={toggleExpandAll}
+                aria-label={expandedId === "ALL" ? "Collapse all flights" : "Expand all flights"}
+                title={expandedId === "ALL" ? "Collapse all flights" : "Expand all flights"}
+              >
+                {expandedId === "ALL" ? "−" : "+"}
+              </button>
+            </nav>
         </header>
 
         {/* LIVE VIEW */}
@@ -125,35 +157,26 @@ const flagUrl = (iso) => {
                 placeholder="Filter by callsign, reg, type, origin, dest..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                aria-label="Filter flights"
               />
             </div>
 
-            <div className="list" role="list">
+            <div className="list">
               {filtered.length === 0 && (
-                <div className="empty">
-                  No flights — try widening your filter.
-                </div>
+                <div className="empty">No flights found.</div>
               )}
 
               {filtered.map((f, i) => {
-                const isOpen = expandedId === f.id;
+                const isOpen =
+                  expandedId === "ALL" || expandedId === f.id;
 
                 return (
                   <div key={f.id ?? i}>
                     <div
                       className="row"
-                      role="button"
                       tabIndex={0}
-                      aria-expanded={isOpen}
                       onClick={() =>
                         setExpandedId(isOpen ? null : f.id)
                       }
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          setExpandedId(isOpen ? null : f.id);
-                        }
-                      }}
                     >
                       <span className="time">
                         {new Date(f.last_seen).toLocaleTimeString([], {
@@ -203,7 +226,7 @@ const flagUrl = (iso) => {
                               {f.manufacturer || "—"}
                             </span>
 
-                            <span className="label">Owner / Operator</span>
+                            <span className="label">Operator</span>
                             <span className="value">
                               {f.airline_name || f.owner || "—"}
                             </span>
@@ -238,12 +261,6 @@ const flagUrl = (iso) => {
                             </span>
 
                             <span className="spacer" />
-
-                            <span className="label">First Seen</span>
-                            <span className="value">{f.first_seen}</span>
-
-                            <span className="label">Last Seen</span>
-                            <span className="value">{f.last_seen}</span>
 
                             <span className="label">Times Seen</span>
                             <span className="value">
@@ -289,7 +306,7 @@ const flagUrl = (iso) => {
 
                             {photoCache[f.reg] === null && (
                               <div className="no-photo">
-                                No reference photo available
+                                No photo available
                               </div>
                             )}
                           </div>
@@ -308,5 +325,4 @@ const flagUrl = (iso) => {
       </div>
     </div>
   );
-
 }

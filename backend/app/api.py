@@ -37,9 +37,17 @@ def stats_summary():
     cur.execute("""
         SELECT
           COUNT(*) AS total_events,
-          COUNT(DISTINCT event_key) AS unique_aircraft,
-          COUNT(DISTINCT COALESCE(airline_name, owner)) AS operators,
+
+          COUNT(
+            DISTINCT COALESCE(NULLIF(reg, ''), hex)
+          ) AS unique_aircraft,
+
+          COUNT(
+            DISTINCT COALESCE(NULLIF(airline_name, ''), NULLIF(owner, ''))
+          ) AS operators,
+
           COUNT(DISTINCT country_iso) AS countries,
+
           CAST(AVG(
             CASE
               WHEN altitude_ft IS NOT NULL
@@ -53,6 +61,7 @@ def stats_summary():
     row = dict(cur.fetchone())
     conn.close()
     return jsonify(row)
+
 
 @api_bp.route("/api/stats/top-aircraft")
 def stats_top_aircraft():
@@ -87,11 +96,18 @@ def stats_top_operators():
 
     cur.execute("""
         SELECT
-          COALESCE(airline_name, owner) AS operator,
+          COALESCE(NULLIF(airline_name, ''), NULLIF(owner, '')) AS operator,
+
           COUNT(*) AS total_events,
-          COUNT(DISTINCT event_key) AS unique_aircraft
+
+          COUNT(
+            DISTINCT COALESCE(NULLIF(reg, ''), hex)
+          ) AS unique_aircraft
+
         FROM flights
-        WHERE airline_name IS NOT NULL OR owner IS NOT NULL
+        WHERE airline_name IS NOT NULL
+           OR owner IS NOT NULL
+
         GROUP BY operator
         ORDER BY total_events DESC
         LIMIT 10;
@@ -100,6 +116,7 @@ def stats_top_operators():
     rows = [dict(r) for r in cur.fetchall()]
     conn.close()
     return jsonify(rows)
+
 
 @api_bp.route("/api/stats/countries")
 def stats_countries():
@@ -111,10 +128,16 @@ def stats_countries():
         SELECT
           country_iso,
           country,
-          COUNT(DISTINCT event_key) AS aircraft_count,
+
+          COUNT(
+            DISTINCT COALESCE(NULLIF(reg, ''), hex)
+          ) AS aircraft_count,
+
           COUNT(*) AS event_count
+
         FROM flights
         WHERE country_iso IS NOT NULL
+
         GROUP BY country_iso
         ORDER BY event_count DESC;
     """)
@@ -122,6 +145,7 @@ def stats_countries():
     rows = [dict(r) for r in cur.fetchall()]
     conn.close()
     return jsonify(rows)
+
 
 
 @api_bp.route("/api/stats/routes")

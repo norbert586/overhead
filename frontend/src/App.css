@@ -53,7 +53,9 @@ html, body {
 
 .controls {
   margin-bottom: 12px;
+  min-width: 0;            /* critical */
 }
+
 
 .search {
   width: 100%;
@@ -63,6 +65,8 @@ html, body {
   padding: 8px 10px;
   border-radius: 6px;
   font-size: 13px;
+  max-width: 100%;
+  box-sizing: border-box;  /* critical */
 }
 
 .search::placeholder {
@@ -290,6 +294,32 @@ th, td {
 th {
   text-align: left;
   color: var(--muted);
+}
+
+/* Expand-all glyph (quiet, intentional) */
+
+.expand-glyph {
+  margin-left: 12px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 120ms ease, color 120ms ease;
+}
+
+.expand-glyph:hover {
+  opacity: 1;
+  color: var(--fg);
+}
+
+.expand-glyph:focus {
+  outline: none;
+  opacity: 1;
+  color: var(--accent);
 }
 
 
