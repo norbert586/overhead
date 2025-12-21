@@ -219,4 +219,78 @@ html, body {
   opacity: 0.9;
 }
 
+.nav {
+  float: right;
+  display: flex;
+  gap: 12px;
+}
+
+.nav button {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.nav-active {
+  color: var(--accent);
+}
+
+.stats {
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.snapshot {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.snapshot div {
+  background: var(--panel-soft);
+  padding: 12px;
+  border: 1px solid var(--line);
+}
+
+.snapshot strong {
+  display: block;
+  font-size: 20px;
+}
+
+.snapshot span {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+section {
+  margin-bottom: 28px;
+}
+
+h3 {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+th, td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+th {
+  text-align: left;
+  color: var(--muted);
+}
+
+
 
