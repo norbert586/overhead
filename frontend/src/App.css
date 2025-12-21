@@ -199,3 +199,24 @@ html, body {
   color: var(--muted);
 }
 
+.seen-indicator {
+  margin-left: 6px;
+  color: var(--accent);
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.value-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.flag {
+  width: 24px;
+  height: 18px;
+  border: 1px solid var(--line);
+  opacity: 0.9;
+}
+
+

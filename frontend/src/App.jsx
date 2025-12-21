@@ -12,7 +12,7 @@ export default function App() {
   ------------------------------ */
   useEffect(() => {
     const fetchFlights = () => {
-      fetch("http://localhost:8080/api/flights?limit=50")
+      fetch("http://localhost:8080/api/flights?limit=150")
         .then((res) => res.json())
         .then(setFlights)
         .catch(console.error);
@@ -51,6 +51,20 @@ export default function App() {
       }));
     }
   };
+
+  const seenIndicator = (count) => {
+  if (count >= 10) return " ✦";
+  if (count >= 6) return " ••";
+  if (count >= 3) return " •";
+  return "";
+};
+
+const flagUrl = (iso) => {
+  if (!iso) return null;
+  return `https://flagcdn.com/w20/${iso.toLowerCase()}.png`;
+};
+
+
 
   /* -----------------------------
      Filtering
@@ -171,7 +185,18 @@ export default function App() {
                         </span>
 
                         <span className="label">Registration</span>
-                        <span className="value">{f.reg || "—"}</span>
+                          <span className="value value-inline">
+                            {f.reg || "—"}
+                            {f.country_iso && (
+                              <img
+                                src={flagUrl(f.country_iso)}
+                                alt={f.country}
+                                className="flag"
+                                loading="lazy"
+                              />
+                            )}
+                          </span>
+
 
                         <span className="spacer" />
 
@@ -197,8 +222,13 @@ export default function App() {
                         <span className="label">Last Seen</span>
                         <span className="value">{f.last_seen}</span>
 
-                        <span className="label">Times Seen</span>
-                        <span className="value">{f.times_seen}</span>
+                          <span className="label">Times Seen</span>
+                          <span className="value">
+                            {f.times_seen}
+                            <span className="seen-indicator">
+                              {seenIndicator(f.times_seen)}
+                            </span>
+                          </span>
                       </div>
 
                       {/* RIGHT */}
