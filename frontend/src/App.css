@@ -322,5 +322,74 @@ th {
   color: var(--accent);
 }
 
+/* ============================
+   Status Bar (Footer)
+============================ */
+
+.status-bar {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+/* Dot indicator */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+  opacity: 0.7;
+}
+
+.status-dot.high {
+  background: var(--accent);
+  box-shadow: 0 0 6px rgba(234,179,8,0.35);
+}
+
+/* Labels */
+.status-label,
+.load-label {
+  color: var(--muted);
+}
+
+.status-value {
+  color: var(--fg);
+}
+
+/* Separator */
+.status-sep {
+  flex: 0 0 1px;
+  height: 10px;
+  background: var(--line);
+  margin: 0 6px;
+}
+
+/* Load bars */
+.load-bars {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.load-bars .bar {
+  width: 6px;
+  height: 10px;
+  background: rgba(255,255,255,0.12);
+}
+
+.load-bars .bar.on {
+  background: var(--accent);
+}
+
+
 
 

@@ -2,14 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import "./app.css";
 import Stats from "./Stats";
 
-const API_BASE = "http://192.168.86.234:8080"; // change to LAN IP if needed
+const API_BASE = "http://192.168.86.234:8080"; // your LAN IP
 
 export default function App() {
   const [flights, setFlights] = useState([]);
   const [query, setQuery] = useState("");
   const [expandedId, setExpandedId] = useState(null); // null | "ALL" | flight.id
-  const [photoCache, setPhotoCache] = useState({});
-  const [view, setView] = useState("live"); // "live" | "stats"
+  const [photoCache, setPhotoCache] = useState({});   // reg -> photo | null
+  const [view, setView] = useState("live");           // "live" | "stats"
+  const [lastFetchMs, setLastFetchMs] = useState(Date.now());
   const [expandingAll, setExpandingAll] = useState(false);
 
   /* -----------------------------
@@ -19,7 +20,10 @@ export default function App() {
     const fetchFlights = () => {
       fetch(`${API_BASE}/api/flights?limit=150`)
         .then((res) => res.json())
-        .then(setFlights)
+        .then((data) => {
+          setFlights(data);
+          setLastFetchMs(Date.now());
+        })
         .catch(console.error);
     };
 
@@ -27,57 +31,6 @@ export default function App() {
     const interval = setInterval(fetchFlights, 5000);
     return () => clearInterval(interval);
   }, []);
-
-  /* -----------------------------
-     Lazy aircraft photo loader
-  ------------------------------ */
-  const loadPhotoForReg = async (reg) => {
-    if (!reg || photoCache[reg]) return;
-
-    try {
-      const res = await fetch(
-        `https://api.planespotters.net/pub/photos/reg/${reg}`
-      );
-      const data = await res.json();
-
-      const photo =
-        data.photos && data.photos.length > 0
-          ? data.photos[0]
-          : null;
-
-      setPhotoCache((prev) => ({
-        ...prev,
-        [reg]: photo,
-      }));
-    } catch {
-      setPhotoCache((prev) => ({
-        ...prev,
-        [reg]: null,
-      }));
-    }
-  };
-
-  /* -----------------------------
-     Expand / Collapse All
-  ------------------------------ */
-  const toggleExpandAll = async () => {
-    if (expandedId === "ALL") {
-      setExpandedId(null);
-      return;
-    }
-
-    setExpandedId("ALL");
-    setExpandingAll(true);
-
-    for (const f of filtered) {
-      if (f.reg && !photoCache[f.reg]) {
-        await loadPhotoForReg(f.reg);
-        await new Promise((r) => setTimeout(r, 300));
-      }
-    }
-
-    setExpandingAll(false);
-  };
 
   /* -----------------------------
      Helpers
@@ -91,6 +44,14 @@ export default function App() {
 
   const flagUrl = (iso) =>
     iso ? `https://flagcdn.com/w20/${iso.toLowerCase()}.png` : null;
+
+  const isGov = (f) => {
+    const blob = `${f.owner || ""} ${f.airline_name || ""} ${f.callsign || ""}`;
+    return (
+      /air force|navy|army|government|usaf|state|homeland/i.test(blob) ||
+      /^(RCH|MC|AF|NAVY)/i.test(f.callsign || "")
+    );
+  };
 
   /* -----------------------------
      Filtering
@@ -109,9 +70,98 @@ export default function App() {
         f.dest_iata,
       ]
         .filter(Boolean)
-        .some((v) => v.toLowerCase().includes(q))
+        .some((v) => String(v).toLowerCase().includes(q))
     );
   }, [flights, query]);
+
+  /* -----------------------------
+     Lazy aircraft photo loader
+  ------------------------------ */
+  const loadPhotoForReg = async (reg) => {
+    if (!reg) return;
+    if (Object.prototype.hasOwnProperty.call(photoCache, reg)) return; // already fetched
+
+    try {
+      const res = await fetch(`https://api.planespotters.net/pub/photos/reg/${reg}`);
+      const data = await res.json();
+      const photo = data?.photos?.length ? data.photos[0] : null;
+
+      setPhotoCache((prev) => ({ ...prev, [reg]: photo }));
+    } catch {
+      setPhotoCache((prev) => ({ ...prev, [reg]: null }));
+    }
+  };
+
+  /* -----------------------------
+     Expand / Collapse All (glyph)
+  ------------------------------ */
+  const toggleExpandAll = async () => {
+    // collapse
+    if (expandedId === "ALL") {
+      setExpandedId(null);
+      return;
+    }
+
+    // expand
+    setExpandedId("ALL");
+    setExpandingAll(true);
+
+    // Use current filtered list at click-time (safe)
+    const regs = filtered
+      .map((f) => f.reg)
+      .filter(Boolean);
+
+    // sequential load with a tiny delay (prevents hammering the API)
+    for (const reg of regs) {
+      if (!Object.prototype.hasOwnProperty.call(photoCache, reg)) {
+        await loadPhotoForReg(reg);
+        await new Promise((r) => setTimeout(r, 220));
+      }
+    }
+
+    setExpandingAll(false);
+  };
+
+  /* -----------------------------
+     Ops Metrics (footer)
+  ------------------------------ */
+  const secondsSinceSweep = Math.max(0, Math.floor((Date.now() - lastFetchMs) / 1000));
+
+  const status =
+    filtered.length === 0
+      ? "NO TARGETS"
+      : filtered.length < 5
+      ? "LOW TRAFFIC"
+      : filtered.length < 15
+      ? "ACTIVE"
+      : "HIGH DENSITY";
+
+  const density =
+    filtered.length < 4
+      ? "▢▢▢"
+      : filtered.length < 9
+      ? "▣▢▢"
+      : filtered.length < 16
+      ? "▣▣▢"
+      : "▣▣▣";
+
+  // Lightweight “most observed” (from current list). Later we can make this a true “today” backend stat.
+  const mostObserved = useMemo(() => {
+    if (!filtered.length) return null;
+    return [...filtered].sort((a, b) => (b.times_seen || 0) - (a.times_seen || 0))[0];
+  }, [filtered]);
+
+  /* -----------------------------
+     Row click behavior
+  ------------------------------ */
+  const onRowClick = (id) => {
+    // If we're in ALL mode, clicking a row should focus that row (not collapse everything)
+    if (expandedId === "ALL") {
+      setExpandedId(id);
+      return;
+    }
+    setExpandedId(expandedId === id ? null : id);
+  };
 
   /* -----------------------------
      Render
@@ -122,30 +172,32 @@ export default function App() {
         {/* HEADER */}
         <header className="header">
           <span>FLIGHT INTELLIGENCE</span>
-            <nav className="nav">
-              <button
-                className={view === "live" ? "nav-active" : ""}
-                onClick={() => setView("live")}
-              >
-                LIVE
-              </button>
-              <button
-                className={view === "stats" ? "nav-active" : ""}
-                onClick={() => setView("stats")}
-              >
-                STATS
-              </button>
 
-              {/* Expand / collapse glyph */}
-              <button
-                className="expand-glyph"
-                onClick={toggleExpandAll}
-                aria-label={expandedId === "ALL" ? "Collapse all flights" : "Expand all flights"}
-                title={expandedId === "ALL" ? "Collapse all flights" : "Expand all flights"}
-              >
-                {expandedId === "ALL" ? "−" : "+"}
-              </button>
-            </nav>
+          <nav className="nav">
+            <button
+              className={view === "live" ? "nav-active" : ""}
+              onClick={() => setView("live")}
+            >
+              LIVE
+            </button>
+
+            <button
+              className={view === "stats" ? "nav-active" : ""}
+              onClick={() => setView("stats")}
+            >
+              STATS
+            </button>
+
+            {/* Expand / collapse glyph */}
+            <button
+              className="expand-glyph"
+              onClick={toggleExpandAll}
+              aria-label={expandedId === "ALL" ? "Collapse all flights" : "Expand all flights"}
+              title={expandedId === "ALL" ? "Collapse all flights" : "Expand all flights"}
+            >
+              {expandedId === "ALL" ? "−" : "+"}
+            </button>
+          </nav>
         </header>
 
         {/* LIVE VIEW */}
@@ -166,17 +218,27 @@ export default function App() {
               )}
 
               {filtered.map((f, i) => {
-                const isOpen =
-                  expandedId === "ALL" || expandedId === f.id;
+                const isOpen = expandedId === "ALL" || expandedId === f.id;
+
+                // row age fade
+                const ageSec =
+                  (Date.now() - new Date(f.last_seen).getTime()) / 1000;
+                const opacity =
+                  ageSec < 30 ? 1 :
+                  ageSec < 120 ? 0.86 :
+                  ageSec < 300 ? 0.68 :
+                  0.48;
 
                 return (
                   <div key={f.id ?? i}>
                     <div
                       className="row"
                       tabIndex={0}
-                      onClick={() =>
-                        setExpandedId(isOpen ? null : f.id)
-                      }
+                      style={{ opacity }}
+                      onClick={() => onRowClick(f.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") onRowClick(f.id);
+                      }}
                     >
                       <span className="time">
                         {new Date(f.last_seen).toLocaleTimeString([], {
@@ -188,6 +250,7 @@ export default function App() {
 
                       <span className="callsign">
                         {f.callsign || f.reg || "UNKNOWN"}
+                        {isGov(f) && <span className="badge-gov">GOV</span>}
                       </span>
 
                       <span className="type">
@@ -237,7 +300,7 @@ export default function App() {
                               {f.country_iso && (
                                 <img
                                   src={flagUrl(f.country_iso)}
-                                  alt={f.country}
+                                  alt={f.country || f.country_iso}
                                   className="flag"
                                   loading="lazy"
                                 />
@@ -273,12 +336,10 @@ export default function App() {
 
                           {/* RIGHT */}
                           <div className="photo-column">
-                            {!photoCache[f.reg] && (
+                            {!Object.prototype.hasOwnProperty.call(photoCache, f.reg) && (
                               <button
                                 className="load-photo"
-                                onClick={() =>
-                                  loadPhotoForReg(f.reg)
-                                }
+                                onClick={() => loadPhotoForReg(f.reg)}
                               >
                                 Load aircraft photo
                               </button>
@@ -287,11 +348,9 @@ export default function App() {
                             {photoCache[f.reg]?.thumbnail_large && (
                               <div className="photo-wrapper">
                                 <img
-                                  src={
-                                    photoCache[f.reg]
-                                      .thumbnail_large.src
-                                  }
+                                  src={photoCache[f.reg].thumbnail_large.src}
                                   alt={`Aircraft ${f.reg}`}
+                                  loading="lazy"
                                 />
                                 <a
                                   href={photoCache[f.reg].link}
@@ -317,11 +376,30 @@ export default function App() {
                 );
               })}
             </div>
+
+            {/* OPS FOOTER */}
+                <div className="status-bar">
+                  <span className="status-dot high" />
+                  <span className="status-label">AIRSPACE</span>
+                  <span className="status-value">HIGH</span>
+
+                  <span className="status-sep" />
+
+                  <span className="load-label">LOAD</span>
+                  <span className="load-bars">
+                    <span className="bar on" />
+                    <span className="bar on" />
+                    <span className="bar on" />
+                    <span className="bar on" />
+                    <span className="bar" />
+                  </span>
+                </div>
           </>
         )}
 
         {/* STATS VIEW */}
-        {view === "stats" && <Stats />}
+        {view === "stats" && <Stats apiBase={API_BASE} />
+}
       </div>
     </div>
   );
