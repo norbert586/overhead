@@ -223,6 +223,9 @@ export default function App() {
                 // row age fade
                 const ageSec =
                   (Date.now() - new Date(f.last_seen).getTime()) / 1000;
+
+                const isFresh = ageSec < 8;
+
                 const opacity =
                   ageSec < 30 ? 1 :
                   ageSec < 120 ? 0.86 :
@@ -232,7 +235,7 @@ export default function App() {
                 return (
                   <div key={f.id ?? i}>
                     <div
-                      className="row"
+                      className={`row ${isFresh ? "fresh" : ""}`}
                       tabIndex={0}
                       style={{ opacity }}
                       onClick={() => onRowClick(f.id)}

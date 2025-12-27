@@ -105,6 +105,36 @@ html, body {
   background: rgba(255, 176, 0, 0.06);
 }
 
+/* Fresh arrival pulse */
+.row.fresh {
+  animation: freshPulse 0.9s ease-out;
+}
+
+@keyframes freshPulse {
+  0% {
+    background-color: rgba(234, 179, 8, 0.18);
+  }
+  40% {
+    background-color: rgba(234, 179, 8, 0.10);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.row.fresh::before {
+  content: "";
+  width: 4px;
+  height: 100%;
+  background: var(--accent);
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0.6;
+}
+
+
+
 .time {
   color: var(--muted);
 }
