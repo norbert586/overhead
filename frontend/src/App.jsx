@@ -278,7 +278,7 @@ export default function App() {
                     </div>
 
                     {isOpen && (
-                      <div className="inspection">
+                      <div className={`inspection class-${f.classification || "unknown"}`}>
                         <div className="inspection-layout">
                           {/* LEFT */}
                           <div className="inspection-grid">

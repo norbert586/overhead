@@ -28,6 +28,44 @@ def get_flights():
 
     return jsonify(rows)
 
+from .db import classify_flight  # add near your other imports
+@api_bp.route("/api/admin/backfill-classification", methods=["POST"])
+def backfill_classification():
+    """
+    One-time backfill:
+    - Reads rows where classification is NULL or blank
+    - Computes classification using the same classifier
+    - Updates the DB
+    """
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    # Get rows needing backfill
+    cur.execute("""
+        SELECT id, airline_name, owner, callsign, type_code, reg, hex, country, country_iso
+        FROM flights
+        WHERE classification IS NULL OR TRIM(classification) = '';
+    """)
+    rows = cur.fetchall()
+
+    updated = 0
+    for r in rows:
+        row_dict = dict(r)
+        cls = classify_flight(row_dict)
+
+        cur.execute(
+            "UPDATE flights SET classification = ? WHERE id = ?;",
+            (cls, r["id"]),
+        )
+        updated += 1
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({"updated": updated})
+
+
 @api_bp.route("/api/stats/summary")
 def stats_summary():
     conn = sqlite3.connect(DB_PATH)

@@ -163,8 +163,27 @@ html, body {
   margin-bottom: 8px;
   padding: 12px;
   background: var(--panel-soft);
-  border-left: 2px solid rgba(234,179,8,0.35);
+  border-left: 3px solid var(--line);
 }
+
+/* Classification accent bars */
+.inspection.class-commercial {
+  border-left-color: rgba(100, 140, 255, 0.55);
+}
+
+.inspection.class-private {
+  border-left-color: rgba(234, 179, 8, 0.55); /* amber */
+}
+
+.inspection.class-government {
+  border-left-color: rgba(220, 80, 80, 0.6); /* restrained red */
+}
+
+.inspection.class-unknown {
+  border-left-color: rgba(255, 255, 255, 0.12);
+}
+
+
 
 
 .inspection-grid {
