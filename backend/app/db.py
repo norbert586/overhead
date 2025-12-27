@@ -86,6 +86,14 @@ def init_db() -> None:
         """
     )
 
+        # ---- lightweight migrations (safe on existing DBs) ----
+    cur.execute("PRAGMA table_info(flights);")
+    cols = {row[1] for row in cur.fetchall()}  # row[1] is column name
+
+    if "classification" not in cols:
+        cur.execute("ALTER TABLE flights ADD COLUMN classification TEXT;")
+
+
     conn.commit()
     conn.close()
 
@@ -101,6 +109,54 @@ def _build_event_key(row: Dict[str, Any]) -> str:
     return f"{hex_}|{reg}|{cs}"
 
 
+def classify_flight(row: Dict[str, Any]) -> str:
+    """
+    Returns one of: commercial | private | government | unknown
+    Uses only fields we already store: airline_name, owner, callsign, type_code, reg, country, etc.
+    """
+    airline = (row.get("airline_name") or "").strip().lower()
+    owner = (row.get("owner") or "").strip().lower()
+    callsign = (row.get("callsign") or "").strip().upper()
+    type_code = (row.get("type_code") or "").strip().upper()
+
+    # GOV / MIL signals (high confidence)
+    gov_owner_terms = [
+        "air force", "usaf", "navy", "army", "marines", "government",
+        "homeland", "state", "dept", "department", "police", "sheriff",
+        "coast guard", "national guard", "royal air force", "raf",
+    ]
+    if any(t in owner for t in gov_owner_terms):
+        return "government"
+
+    gov_callsign_prefixes = ("RCH", "SAM", "MC", "AF", "NAVY", "ARMY", "AE")
+    if callsign.startswith(gov_callsign_prefixes):
+        return "government"
+
+    # Commercial: airline name present is the cleanest signal
+    if airline:
+        return "commercial"
+
+    # Private / business jet heuristics
+    private_owner_terms = [
+        "flexjet", "netjets", "wheels up", "vista", "luxaviation",
+        "aviation", "charter", "jet", "executive", "air charter",
+    ]
+    if any(t in owner for t in private_owner_terms):
+        return "private"
+
+    private_type_codes = {
+        "E545", "E550", "E35L", "E35X", "E50P", "E55P",
+        "CL60", "GLEX", "GLF5", "GLF6", "GLF4", "GLF3",
+        "PC24", "FA50", "FA7X", "LJ45", "LJ60", "C750",
+        "C25A", "C25B", "C25C", "C560", "C650",
+    }
+    if type_code in private_type_codes:
+        return "private"
+
+    return "unknown"
+
+
+
 def log_flight(row: Dict[str, Any]) -> None:
     init_db()
 
@@ -109,6 +165,8 @@ def log_flight(row: Dict[str, Any]) -> None:
     now_dt = datetime.fromisoformat(now_iso)
 
     event_key = _build_event_key(row)
+    classification = classify_flight(row)
+
 
     if not event_key.replace("|", ""):
         _insert_new_event(row, event_key)
@@ -160,7 +218,8 @@ def log_flight(row: Dict[str, Any]) -> None:
                 origin_iata = COALESCE(NULLIF(origin_iata, ''), ?),
                 origin_name = COALESCE(NULLIF(origin_name, ''), ?),
                 dest_iata = COALESCE(NULLIF(dest_iata, ''), ?),
-                dest_name = COALESCE(NULLIF(dest_name, ''), ?)
+                dest_name = COALESCE(NULLIF(dest_name, ''), ?),
+                classification  = ?
             WHERE id = ?;
             """,
             (
@@ -193,7 +252,8 @@ def log_flight(row: Dict[str, Any]) -> None:
                 altitude_ft = ?,
                 ground_speed_kt = ?,
                 distance_nm = ?,
-                heading_deg = ?
+                heading_deg = ?,
+                classification = ?
             WHERE id = ?;
             """,
             (
@@ -216,18 +276,37 @@ def _insert_new_event(row: Dict[str, Any], event_key: str) -> None:
     cur = conn.cursor()
 
     seen_at = row.get("seen_at") or datetime.now().isoformat(timespec="seconds")
+    classification = classify_flight(row)
 
     cur.execute(
         """
         INSERT INTO flights (
-            seen_at, hex, reg, callsign, type_code,
-            model, manufacturer, country, country_iso, owner,
-            airline_name, origin_iata, origin_name,
-            dest_iata, dest_name,
-            altitude_ft, ground_speed_kt, distance_nm, heading_deg,
-            event_key, first_seen, last_seen, times_seen
+            seen_at,
+            hex,
+            reg,
+            callsign,
+            type_code,
+            model,
+            manufacturer,
+            country,
+            country_iso,
+            owner,
+            airline_name,
+            origin_iata,
+            origin_name,
+            dest_iata,
+            dest_name,
+            altitude_ft,
+            ground_speed_kt,
+            distance_nm,
+            heading_deg,
+            event_key,
+            first_seen,
+            last_seen,
+            times_seen,
+            classification
         )
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         """,
         (
             seen_at,
@@ -253,11 +332,13 @@ def _insert_new_event(row: Dict[str, Any], event_key: str) -> None:
             seen_at,
             seen_at,
             1,
+            classification,
         ),
     )
 
     conn.commit()
     conn.close()
+
 
 
 # ============================================================
