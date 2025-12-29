@@ -156,6 +156,13 @@ html, body {
   text-align: center;
 }
 
+.value.subtle {
+  opacity: 0.6;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+
 /* ===== Inspection Panel ===== */
 
 .inspection {
@@ -164,6 +171,7 @@ html, body {
   padding: 12px;
   background: var(--panel-soft);
   border-left: 3px solid var(--line);
+  transition: border-left-color 0.3s ease, opacity 0.3s ease;
 }
 
 /* Classification accent bars */
@@ -181,6 +189,73 @@ html, body {
 
 .inspection.class-unknown {
   border-left-color: rgba(255, 255, 255, 0.12);
+}
+
+
+/* Classification legend */
+.legend {
+  position: relative;
+  margin-left: 10px;
+  font-size: 12px;
+  opacity: 0.65;
+}
+
+.legend-icon {
+  cursor: default;
+}
+
+.legend:hover .legend-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.legend-tooltip {
+  position: absolute;
+  top: 22px;
+  right: 0;
+  background: rgba(10, 14, 25, 0.95);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 11px;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: all 0.15s ease;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+  z-index: 50;
+}
+
+.legend-tooltip div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 3px 0;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot.commercial {
+  background: rgba(100, 140, 255, 0.7);
+}
+
+.dot.private {
+  background: rgba(234, 179, 8, 0.7);
+}
+
+.dot.government {
+  background: rgba(220, 80, 80, 0.7);
+}
+
+.dot.unknown {
+  background: rgba(255,255,255,0.25);
 }
 
 

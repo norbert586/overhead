@@ -197,6 +197,15 @@ export default function App() {
             >
               {expandedId === "ALL" ? "−" : "+"}
             </button>
+              <div className="legend">
+              <span className="legend-icon">ⓘ</span>
+              <div className="legend-tooltip">
+                <div><span className="dot commercial" /> Commercial</div>
+                <div><span className="dot private" /> Private</div>
+                <div><span className="dot government" /> Government</div>
+                <div><span className="dot unknown" /> Unknown</div>
+              </div>
+            </div>
           </nav>
         </header>
 
@@ -329,6 +338,9 @@ export default function App() {
                             <span className="spacer" />
 
                             <span className="label">Times Seen</span>
+                              <span className="value subtle">
+                                {(f.classification || "unknown").toUpperCase()}
+                              </span>
                             <span className="value">
                               {f.times_seen}
                               <span className="seen-indicator">

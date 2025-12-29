@@ -196,6 +196,14 @@ def log_flight(row: Dict[str, Any]) -> None:
     last_seen_dt = datetime.fromisoformat(match["last_seen"])
     gap_minutes = (now_dt - last_seen_dt).total_seconds() / 60
     increment = gap_minutes >= EVENT_WINDOW_MINUTES
+    # Recompute classification if enrichment data arrived
+    enrichment_fields = (
+        row.get("airline_name")
+        or row.get("owner")
+        or row.get("callsign")
+    )
+
+    should_update_classification = enrichment_fields is not None
 
     if increment:
         cur.execute(
@@ -219,7 +227,7 @@ def log_flight(row: Dict[str, Any]) -> None:
                 origin_name = COALESCE(NULLIF(origin_name, ''), ?),
                 dest_iata = COALESCE(NULLIF(dest_iata, ''), ?),
                 dest_name = COALESCE(NULLIF(dest_name, ''), ?),
-                classification  = ?
+                classification = ?
             WHERE id = ?;
             """,
             (
@@ -239,6 +247,7 @@ def log_flight(row: Dict[str, Any]) -> None:
                 row.get("origin_name"),
                 row.get("dest_iata"),
                 row.get("dest_name"),
+                classification,
                 match["id"],
             ),
         )
@@ -263,6 +272,7 @@ def log_flight(row: Dict[str, Any]) -> None:
                 row.get("ground_speed_kt"),
                 row.get("distance_nm"),
                 row.get("heading_deg"),
+                classification,
                 match["id"],
             ),
         )
