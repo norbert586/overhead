@@ -514,6 +514,30 @@ th {
   background: var(--accent);
 }
 
+.hourly {
+  display: grid;
+  gap: 6px;
+}
+
+.hour {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hour-label {
+  width: 28px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.hour-bar {
+  height: 10px;
+  background: #5da9ff;
+  border-radius: 2px;
+}
+
+
 
 
 

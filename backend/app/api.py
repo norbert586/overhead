@@ -210,6 +210,72 @@ def stats_routes():
     conn.close()
     return jsonify(rows)
 
+@api_bp.route("/api/stats/summary-24h")
+def stats_summary_24h():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT
+          COUNT(*) AS events_24h,
+
+          COUNT(
+            DISTINCT COALESCE(NULLIF(reg, ''), hex)
+          ) AS aircraft_24h,
+
+          COUNT(
+            DISTINCT COALESCE(NULLIF(airline_name, ''), NULLIF(owner, ''))
+          ) AS operators_24h
+
+        FROM flights
+        WHERE last_seen >= datetime('now', '-24 hours');
+    """)
+
+    row = dict(cur.fetchone())
+    conn.close()
+    return jsonify(row)
+
+
+@api_bp.route("/api/stats/classification")
+def stats_classification():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT
+          COALESCE(classification, 'unknown') AS classification,
+          COUNT(*) AS count
+        FROM flights
+        GROUP BY classification;
+    """)
+
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return jsonify(rows)
+
+@api_bp.route("/api/stats/hourly")
+def stats_hourly():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("""
+      SELECT
+        strftime('%H', last_seen, 'localtime') AS hour,
+        COUNT(*) AS events
+      FROM flights
+      WHERE last_seen >= datetime('now', '-24 hours', 'localtime')
+      GROUP BY hour
+      ORDER BY hour;
+    """)
+
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return jsonify(rows)
+
+
 
 
 
