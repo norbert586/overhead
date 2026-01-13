@@ -141,6 +141,23 @@ html, body {
 
 .callsign {
   color: var(--fg);
+  font-weight: 500;
+}
+
+.callsign.class-commercial {
+  color: rgba(100, 140, 255, 0.95);
+}
+
+.callsign.class-private {
+  color: rgba(234, 179, 8, 0.95);
+}
+
+.callsign.class-government {
+  color: rgba(220, 80, 80, 0.95);
+}
+
+.callsign.class-cargo {
+  color: rgba(139, 92, 246, 0.95);
 }
 
 .type,
@@ -148,6 +165,11 @@ html, body {
 .altitude,
 .distance {
   color: var(--muted);
+}
+
+.route.local {
+  color: var(--accent);
+  font-weight: 500;
 }
 
 .empty {
@@ -185,6 +207,10 @@ html, body {
 
 .inspection.class-government {
   border-left-color: rgba(220, 80, 80, 0.6); /* restrained red */
+}
+
+.inspection.class-cargo {
+  border-left-color: rgba(139, 92, 246, 0.55); /* purple */
 }
 
 .inspection.class-unknown {
@@ -252,6 +278,10 @@ html, body {
 
 .dot.government {
   background: rgba(220, 80, 80, 0.7);
+}
+
+.dot.cargo {
+  background: rgba(139, 92, 246, 0.7);
 }
 
 .dot.unknown {

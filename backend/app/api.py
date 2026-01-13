@@ -29,41 +29,98 @@ def get_flights():
     return jsonify(rows)
 
 from .db import classify_flight  # add near your other imports
-@api_bp.route("/api/admin/backfill-classification", methods=["POST"])
-def backfill_classification():
+
+@api_bp.route("/api/admin/classification-stats", methods=["GET"])
+def classification_stats():
     """
-    One-time backfill:
-    - Reads rows where classification is NULL or blank
-    - Computes classification using the same classifier
-    - Updates the DB
+    Diagnostic: shows current state of classifications in DB
     """
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
 
-    # Get rows needing backfill
     cur.execute("""
-        SELECT id, airline_name, owner, callsign, type_code, reg, hex, country, country_iso
-        FROM flights
-        WHERE classification IS NULL OR TRIM(classification) = '';
+        SELECT
+            COUNT(*) as total,
+            COUNT(CASE WHEN classification IS NULL THEN 1 END) as null_count,
+            COUNT(CASE WHEN TRIM(classification) = '' THEN 1 END) as empty_count,
+            COUNT(CASE WHEN classification = 'unknown' THEN 1 END) as unknown_count,
+            COUNT(CASE WHEN classification NOT IN ('commercial', 'private', 'government', 'cargo', 'unknown')
+                       AND classification IS NOT NULL
+                       AND TRIM(classification) != ''
+                  THEN 1 END) as invalid_count
+        FROM flights;
     """)
+
+    stats = dict(cur.fetchone())
+    conn.close()
+
+    return jsonify(stats)
+
+
+@api_bp.route("/api/admin/backfill-classification", methods=["POST"])
+def backfill_classification():
+    """
+    Reclassifies ALL flights (or specific subset based on query params)
+    Query params:
+      - force=true: Reclassify everything (default: only NULL/empty/unknown)
+      - limit=N: Limit number of rows to update (default: all)
+    """
+    force = request.args.get("force", "false").lower() == "true"
+    limit = request.args.get("limit", type=int)
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    # Build query based on force flag
+    if force:
+        query = """
+            SELECT id, airline_name, owner, callsign, type_code, reg, hex, country, country_iso
+            FROM flights
+        """
+    else:
+        query = """
+            SELECT id, airline_name, owner, callsign, type_code, reg, hex, country, country_iso
+            FROM flights
+            WHERE classification IS NULL
+               OR TRIM(classification) = ''
+               OR classification = 'unknown';
+        """
+
+    if limit:
+        query += f" LIMIT {limit};"
+    else:
+        query += ";"
+
+    cur.execute(query)
     rows = cur.fetchall()
 
     updated = 0
+    changed = 0
+
     for r in rows:
         row_dict = dict(r)
-        cls = classify_flight(row_dict)
+        old_class = row_dict.get("classification")
+        new_class = classify_flight(row_dict)
 
         cur.execute(
             "UPDATE flights SET classification = ? WHERE id = ?;",
-            (cls, r["id"]),
+            (new_class, r["id"]),
         )
         updated += 1
+
+        if old_class != new_class:
+            changed += 1
 
     conn.commit()
     conn.close()
 
-    return jsonify({"updated": updated})
+    return jsonify({
+        "updated": updated,
+        "changed": changed,
+        "forced": force
+    })
 
 
 @api_bp.route("/api/stats/summary")

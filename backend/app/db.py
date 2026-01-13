@@ -111,46 +111,143 @@ def _build_event_key(row: Dict[str, Any]) -> str:
 
 def classify_flight(row: Dict[str, Any]) -> str:
     """
-    Returns one of: commercial | private | government | unknown
+    Returns one of: commercial | private | government | cargo | unknown
     Uses only fields we already store: airline_name, owner, callsign, type_code, reg, country, etc.
     """
     airline = (row.get("airline_name") or "").strip().lower()
     owner = (row.get("owner") or "").strip().lower()
     callsign = (row.get("callsign") or "").strip().upper()
     type_code = (row.get("type_code") or "").strip().upper()
+    reg = (row.get("reg") or "").strip().upper()
 
-    # GOV / MIL signals (high confidence)
+    # ============================================================
+    # GOVERNMENT / MILITARY (highest priority - most specific)
+    # ============================================================
+
     gov_owner_terms = [
         "air force", "usaf", "navy", "army", "marines", "government",
-        "homeland", "state", "dept", "department", "police", "sheriff",
+        "homeland", "state dept", "department of", "police", "sheriff",
         "coast guard", "national guard", "royal air force", "raf",
+        "us marshal", "dhs", "customs", "border patrol", "fbi",
+        "military", "defense", "armed forces", "ministry of defence",
     ]
     if any(t in owner for t in gov_owner_terms):
         return "government"
 
-    gov_callsign_prefixes = ("RCH", "SAM", "MC", "AF", "NAVY", "ARMY", "AE")
+    # Military callsign prefixes (US and international)
+    gov_callsign_prefixes = (
+        "RCH", "SAM", "MC", "AF", "NAVY", "ARMY", "AE", "EVAC",
+        "BOXER", "REACH", "SPAR", "VENUS", "EXEC", "PAT",
+        "CNV", "SHAMU", "CONVOY", "TEAL"
+    )
     if callsign.startswith(gov_callsign_prefixes):
         return "government"
 
-    # Commercial: airline name present is the cleanest signal
+    # Military registration prefixes
+    if reg.startswith(("N", "AF", "166", "167", "168", "169")):
+        # US military aircraft often have registrations starting with specific numbers
+        # This is a rough heuristic
+        if any(term in owner for term in ["llc", "inc", "corp", "trust"]) == False:
+            if not airline and not any(term in owner for term in ["aviation", "air charter", "jet"]):
+                # Possible military if no clear commercial/private signals
+                pass
+
+    # ============================================================
+    # COMMERCIAL AIRLINES (high confidence)
+    # ============================================================
+
+    # Airline name from callsign lookup is strongest signal
     if airline:
+        # Check if it's cargo masquerading as commercial
+        cargo_airlines = [
+            "fedex", "ups", "united parcel", "dhl", "amazon air", "amazon prime",
+            "atlas air", "kalitta", "polar air", "southern air", "cargo", "freight",
+            "air cargo", "express freight"
+        ]
+        if any(c in airline for c in cargo_airlines):
+            return "cargo"
         return "commercial"
 
-    # Private / business jet heuristics
-    private_owner_terms = [
-        "flexjet", "netjets", "wheels up", "vista", "luxaviation",
-        "aviation", "charter", "jet", "executive", "air charter",
+    # Commercial airline owner patterns
+    commercial_owner_terms = [
+        "airlines", "airways", "air lines", "airline",
     ]
-    if any(t in owner for t in private_owner_terms):
+    if any(t in owner for t in commercial_owner_terms):
+        # Exclude cargo/charter
+        if not any(c in owner for c in ["cargo", "freight", "charter"]):
+            return "commercial"
+
+    # ============================================================
+    # CARGO OPERATIONS
+    # ============================================================
+
+    cargo_owner_terms = ["cargo", "freight", "logistics", "express"]
+    if any(t in owner for t in cargo_owner_terms):
+        return "cargo"
+
+    cargo_type_codes = {
+        "B763", "B762", "B752", "B744", "B748", "MD11",  # Common cargo conversions
+        "A306", "A30B", "DC10", "DC86", "DC87",
+    }
+    if type_code in cargo_type_codes and not airline:
+        return "cargo"
+
+    # ============================================================
+    # PRIVATE / BUSINESS JETS
+    # ============================================================
+
+    # Charter operators (technically commercial but often categorized as private)
+    charter_owner_terms = [
+        "flexjet", "netjets", "wheels up", "xojet", "sentient",
+        "vistajet", "luxaviation", "privé", "air charter",
+        "charter", "executive", "flight options", "bombardier fractional",
+    ]
+    if any(t in owner for t in charter_owner_terms):
         return "private"
 
+    # Personal ownership patterns
+    private_owner_terms = [
+        " llc", " inc", " trust", " corp", "holdings",
+        "management", "investments", "aviation llc",
+    ]
+    # Only classify as private if owner has these terms AND it's a jet/small aircraft
+    if any(owner.endswith(t) or t + " " in owner for t in private_owner_terms):
+        if type_code:  # Has type code, likely private
+            return "private"
+
+    # Business jet type codes (comprehensive list)
     private_type_codes = {
-        "E545", "E550", "E35L", "E35X", "E50P", "E55P",
-        "CL60", "GLEX", "GLF5", "GLF6", "GLF4", "GLF3",
-        "PC24", "FA50", "FA7X", "LJ45", "LJ60", "C750",
-        "C25A", "C25B", "C25C", "C560", "C650",
+        # Embraer Phenom/Praetor/Legacy
+        "E50P", "E55P", "E545", "E550", "E35L", "E35X", "E135", "E145",
+        # Cessna Citation family
+        "C25A", "C25B", "C25C", "C500", "C501", "C510", "C525", "C550",
+        "C551", "C560", "C56X", "C650", "C680", "C700", "C750",
+        # Gulfstream
+        "GLF2", "GLF3", "GLF4", "GLF5", "GLF6", "G150", "G200", "G280",
+        "GLEX", "G650",
+        # Bombardier/Canadair
+        "CL30", "CL35", "CL60", "CL64", "CL65", "GALX", "GL5T", "GL7T",
+        # Dassault Falcon
+        "F900", "FA10", "FA20", "FA50", "FA7X", "FA8X", "FA2T", "FA5X",
+        # Learjet
+        "LJ23", "LJ24", "LJ25", "LJ31", "LJ35", "LJ40", "LJ45", "LJ55",
+        "LJ60", "LJ70", "LJ75", "LJ85",
+        # Hawker/Beechjet
+        "H25A", "H25B", "H25C", "BE40", "BE20", "BE30", "BE9L", "BE9T",
+        # Pilatus
+        "PC12", "PC24",
+        # Other common business jets
+        "HDJT", "HA4T", "ASTR", "C68A", "PRM1", "EA50",
     }
     if type_code in private_type_codes:
+        return "private"
+
+    # Small single/twin props (likely private/training)
+    small_aircraft_codes = {
+        "C172", "C182", "C206", "PA28", "PA32", "PA46", "SR20", "SR22",
+        "BE36", "BE58", "C310", "C340", "C414", "C421",
+    }
+    if type_code in small_aircraft_codes:
         return "private"
 
     return "unknown"

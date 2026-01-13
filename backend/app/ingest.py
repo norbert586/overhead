@@ -81,34 +81,34 @@ def ingestion_loop():
                         "country_iso": intel.get("registered_owner_country_iso_name"),
                     })
 
-                # -------- Route / airline enrichment (callsign-based) --------
-                callsign = row.get("callsign")
+            # -------- Route / airline enrichment (callsign-based) --------
+            callsign = row.get("callsign")
 
-                cached_route = get_cached_callsign(callsign)
-                if cached_route:
+            cached_route = get_cached_callsign(callsign)
+            if cached_route:
+                row.update({
+                    "airline_name": cached_route.get("airline_name"),
+                    "origin_iata": cached_route.get("origin_iata"),
+                    "origin_name": cached_route.get("origin_name"),
+                    "dest_iata": cached_route.get("dest_iata"),
+                    "dest_name": cached_route.get("dest_name"),
+                })
+            else:
+                route = fetch_callsign_route(callsign)
+                if route:
+                    upsert_callsign_cache(callsign, route)
+
+                    airline = route.get("airline") or {}
+                    origin = route.get("origin") or {}
+                    dest = route.get("destination") or {}
+
                     row.update({
-                        "airline_name": cached_route.get("airline_name"),
-                        "origin_iata": cached_route.get("origin_iata"),
-                        "origin_name": cached_route.get("origin_name"),
-                        "dest_iata": cached_route.get("dest_iata"),
-                        "dest_name": cached_route.get("dest_name"),
+                        "airline_name": airline.get("name"),
+                        "origin_iata": origin.get("iata_code"),
+                        "origin_name": origin.get("name") or origin.get("municipality"),
+                        "dest_iata": dest.get("iata_code"),
+                        "dest_name": dest.get("name") or dest.get("municipality"),
                     })
-                else:
-                    route = fetch_callsign_route(callsign)
-                    if route:
-                        upsert_callsign_cache(callsign, route)
-
-                        airline = route.get("airline") or {}
-                        origin = route.get("origin") or {}
-                        dest = route.get("destination") or {}
-
-                        row.update({
-                            "airline_name": airline.get("name"),
-                            "origin_iata": origin.get("iata_code"),
-                            "origin_name": origin.get("name") or origin.get("municipality"),
-                            "dest_iata": dest.get("iata_code"),
-                            "dest_name": dest.get("name") or dest.get("municipality"),
-                        })
 
             log_flight(row)
             print(

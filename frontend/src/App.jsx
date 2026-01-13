@@ -33,6 +33,42 @@ export default function App() {
   }, []);
 
   /* -----------------------------
+     Keyboard shortcuts
+  ------------------------------ */
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Esc to collapse all
+      if (e.key === "Escape") {
+        setExpandedId(null);
+      }
+
+      // / to focus search (prevent default to avoid typing "/")
+      if (e.key === "/" && e.target.tagName !== "INPUT") {
+        e.preventDefault();
+        document.querySelector(".search")?.focus();
+      }
+
+      // Arrow keys for navigation (when not in input)
+      if (e.target.tagName !== "INPUT" && ["ArrowDown", "ArrowUp"].includes(e.key)) {
+        e.preventDefault();
+        const rows = Array.from(document.querySelectorAll(".row"));
+        const currentIndex = rows.findIndex(r => r === document.activeElement);
+
+        if (e.key === "ArrowDown" && currentIndex < rows.length - 1) {
+          rows[currentIndex + 1]?.focus();
+        } else if (e.key === "ArrowUp" && currentIndex > 0) {
+          rows[currentIndex - 1]?.focus();
+        } else if (currentIndex === -1 && e.key === "ArrowDown") {
+          rows[0]?.focus();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  /* -----------------------------
      Helpers
   ------------------------------ */
   const seenIndicator = (count) => {
@@ -45,12 +81,9 @@ export default function App() {
   const flagUrl = (iso) =>
     iso ? `https://flagcdn.com/w20/${iso.toLowerCase()}.png` : null;
 
-  const isGov = (f) => {
-    const blob = `${f.owner || ""} ${f.airline_name || ""} ${f.callsign || ""}`;
-    return (
-      /air force|navy|army|government|usaf|state|homeland/i.test(blob) ||
-      /^(RCH|MC|AF|NAVY)/i.test(f.callsign || "")
-    );
+  const isLocalAirport = (iata) => {
+    const localAirports = ["DTW", "DET", "YIP", "PTK", "ARB"];
+    return iata && localAirports.includes(iata.toUpperCase());
   };
 
   /* -----------------------------
@@ -171,7 +204,14 @@ export default function App() {
       <div className="card">
         {/* HEADER */}
         <header className="header">
-          <span>FLIGHT INTELLIGENCE</span>
+          <span>
+            FLIGHT INTELLIGENCE
+            {view === "live" && (
+              <span style={{ marginLeft: "12px", opacity: 0.6, fontSize: "12px" }}>
+                {filtered.length} {filtered.length === 1 ? "FLIGHT" : "FLIGHTS"}
+              </span>
+            )}
+          </span>
 
           <nav className="nav">
             <button
@@ -203,6 +243,7 @@ export default function App() {
                 <div><span className="dot commercial" /> Commercial</div>
                 <div><span className="dot private" /> Private</div>
                 <div><span className="dot government" /> Government</div>
+                <div><span className="dot cargo" /> Cargo</div>
                 <div><span className="dot unknown" /> Unknown</div>
               </div>
             </div>
@@ -260,16 +301,15 @@ export default function App() {
                         })}
                       </span>
 
-                      <span className="callsign">
+                      <span className={`callsign ${f.classification ? `class-${f.classification}` : ""}`}>
                         {f.callsign || f.reg || "UNKNOWN"}
-                        {isGov(f) && <span className="badge-gov">GOV</span>}
                       </span>
 
                       <span className="type">
                         {f.type_code || f.model || "—"}
                       </span>
 
-                      <span className="route">
+                      <span className={`route ${isLocalAirport(f.origin_iata) || isLocalAirport(f.dest_iata) ? "local" : ""}`}>
                         {f.origin_iata && f.dest_iata
                           ? `${f.origin_iata}→${f.dest_iata}`
                           : "—"}
@@ -337,10 +377,12 @@ export default function App() {
 
                             <span className="spacer" />
 
+                            <span className="label">Classification</span>
+                            <span className="value subtle">
+                              {(f.classification || "unknown").toUpperCase()}
+                            </span>
+
                             <span className="label">Times Seen</span>
-                              <span className="value subtle">
-                                {(f.classification || "unknown").toUpperCase()}
-                              </span>
                             <span className="value">
                               {f.times_seen}
                               <span className="seen-indicator">
@@ -394,20 +436,23 @@ export default function App() {
 
             {/* OPS FOOTER */}
                 <div className="status-bar">
-                  <span className="status-dot high" />
+                  <span className={`status-dot ${filtered.length >= 15 ? "high" : ""}`} />
                   <span className="status-label">AIRSPACE</span>
-                  <span className="status-value">HIGH</span>
+                  <span className="status-value">{status}</span>
 
                   <span className="status-sep" />
 
                   <span className="load-label">LOAD</span>
                   <span className="load-bars">
-                    <span className="bar on" />
-                    <span className="bar on" />
-                    <span className="bar on" />
-                    <span className="bar on" />
-                    <span className="bar" />
+                    <span className={`bar ${filtered.length >= 4 ? "on" : ""}`} />
+                    <span className={`bar ${filtered.length >= 9 ? "on" : ""}`} />
+                    <span className={`bar ${filtered.length >= 16 ? "on" : ""}`} />
                   </span>
+
+                  <span className="status-sep" />
+
+                  <span className="status-label">SWEEP</span>
+                  <span className="status-value">{secondsSinceSweep}s</span>
                 </div>
           </>
         )}
