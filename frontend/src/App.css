@@ -565,6 +565,402 @@ th {
   height: 10px;
   background: #5da9ff;
   border-radius: 2px;
+  flex: 1;
+}
+
+.hour-count {
+  font-size: 11px;
+  color: var(--muted);
+  min-width: 32px;
+  text-align: right;
+}
+
+/* ============================
+   STATS PAGE ENHANCEMENTS
+============================ */
+
+/* Threat Assessment Header */
+.threat-assessment {
+  background: linear-gradient(135deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.1) 100%);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  padding: 20px;
+  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.threat-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding-right: 24px;
+  border-right: 1px solid var(--line);
+}
+
+.threat-level {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 8px 16px;
+  border: 2px solid;
+  border-radius: 4px;
+}
+
+.threat-level.nominal {
+  color: rgba(100, 255, 150, 0.9);
+  border-color: rgba(100, 255, 150, 0.4);
+  background: rgba(100, 255, 150, 0.05);
+}
+
+.threat-level.elevated {
+  color: rgba(234, 179, 8, 0.95);
+  border-color: rgba(234, 179, 8, 0.4);
+  background: rgba(234, 179, 8, 0.05);
+}
+
+.threat-level.high {
+  color: rgba(220, 80, 80, 0.95);
+  border-color: rgba(220, 80, 80, 0.4);
+  background: rgba(220, 80, 80, 0.05);
+  animation: pulse-threat 2s ease-in-out infinite;
+}
+
+@keyframes pulse-threat {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.threat-label {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+}
+
+.threat-details {
+  display: flex;
+  gap: 32px;
+  flex: 1;
+}
+
+.threat-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.threat-stat strong {
+  font-size: 32px;
+  color: var(--fg);
+  line-height: 1;
+}
+
+.threat-stat span {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+}
+
+/* Classification Breakdown */
+.classification-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.classification-item {
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  padding: 12px;
+}
+
+.classification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.classification-name {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--fg);
+}
+
+.classification-percent {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.classification-bar-container {
+  height: 12px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.classification-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 500ms ease;
+}
+
+.classification-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.stat-sep {
+  opacity: 0.5;
+}
+
+.stat-highlight {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Altitude Distribution */
+.altitude-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.altitude-item {
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  padding: 10px;
+}
+
+.altitude-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.altitude-name {
+  font-size: 12px;
+  color: var(--fg);
+  letter-spacing: 0.04em;
+}
+
+.altitude-count {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.altitude-bar-container {
+  height: 8px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.altitude-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 500ms ease;
+}
+
+/* Weekly Activity Pattern */
+.weekly-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 12px;
+  height: 180px;
+  align-items: flex-end;
+  padding: 12px;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+}
+
+.day-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+}
+
+.day-name {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  order: 3;
+}
+
+.day-bar {
+  width: 100%;
+  background: linear-gradient(180deg, var(--accent) 0%, rgba(234,179,8,0.5) 100%);
+  border-radius: 2px 2px 0 0;
+  min-height: 4px;
+  transition: height 500ms ease;
+  order: 2;
+}
+
+.day-count {
+  font-size: 10px;
+  color: var(--fg);
+  font-weight: 600;
+  order: 1;
+}
+
+/* Aircraft Types List */
+.aircraft-types-list {
+  display: grid;
+  gap: 10px;
+}
+
+.aircraft-type-item {
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  padding: 10px;
+}
+
+.aircraft-type-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.aircraft-rank {
+  font-size: 11px;
+  color: var(--muted);
+  min-width: 24px;
+}
+
+.aircraft-type {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+  min-width: 60px;
+}
+
+.aircraft-model {
+  font-size: 12px;
+  color: var(--fg);
+}
+
+.aircraft-type-bar-container {
+  height: 6px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.aircraft-type-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, rgba(234,179,8,0.5) 100%);
+  border-radius: 2px;
+  transition: width 500ms ease;
+}
+
+.aircraft-type-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Recent Notable Activity */
+.notable-feed {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.notable-item {
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  border-left-width: 3px;
+  padding: 10px;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.notable-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.notable-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.notable-callsign {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.notable-classification {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.08);
+  color: var(--muted);
+}
+
+.notable-classification.commercial {
+  background: rgba(100, 140, 255, 0.15);
+  color: rgba(100, 140, 255, 0.95);
+}
+
+.notable-classification.private {
+  background: rgba(234, 179, 8, 0.15);
+  color: rgba(234, 179, 8, 0.95);
+}
+
+.notable-classification.government {
+  background: rgba(220, 80, 80, 0.15);
+  color: rgba(220, 80, 80, 0.95);
+}
+
+.notable-classification.cargo {
+  background: rgba(139, 92, 246, 0.15);
+  color: rgba(139, 92, 246, 0.95);
+}
+
+.notable-details {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.notable-type {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.notable-operator {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notable-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--muted);
 }
 
 
