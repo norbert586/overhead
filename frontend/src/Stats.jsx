@@ -48,10 +48,10 @@ export default function Stats() {
   const maxAircraftType = Math.max(...aircraftTypes.map(a => a.event_count), 1);
   const maxDayActivity = Math.max(...activityByDay.map(d => d.events), 1);
 
-  // Calculate threat level based on government traffic
+  // Calculate threat level based on government traffic (more conservative thresholds)
   const govClassification = classificationDetailed.find(c => c.classification === 'government');
   const govCount24h = govClassification?.count_24h || 0;
-  const threatLevel = govCount24h >= 5 ? 'HIGH' : govCount24h >= 2 ? 'ELEVATED' : 'NOMINAL';
+  const threatLevel = govCount24h >= 15 ? 'HIGH' : govCount24h >= 8 ? 'ELEVATED' : 'NOMINAL';
 
   return (
     <div className="stats">
@@ -181,11 +181,13 @@ export default function Stats() {
           {hourly.map(h => (
             <div key={h.hour} className="hour">
               <span className="hour-label">{h.hour}</span>
-              <div
-                className="hour-bar"
-                style={{ width: `${(h.events / maxHourly) * 100}%` }}
-                title={`${h.events} events`}
-              />
+              <div className="hour-bar-container">
+                <div
+                  className="hour-bar"
+                  style={{ width: `${(h.events / maxHourly) * 100}%` }}
+                  title={`${h.events} events`}
+                />
+              </div>
               <span className="hour-count">{h.events}</span>
             </div>
           ))}

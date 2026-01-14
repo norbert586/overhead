@@ -546,32 +546,40 @@ th {
 
 .hourly {
   display: grid;
-  gap: 6px;
+  gap: 4px;
+  max-width: 600px;
 }
 
 .hour {
-  display: flex;
+  display: grid;
+  grid-template-columns: 24px 1fr 36px;
   align-items: center;
   gap: 8px;
 }
 
 .hour-label {
-  width: 28px;
-  font-size: 12px;
+  font-size: 11px;
   opacity: 0.7;
+  text-align: right;
+}
+
+.hour-bar-container {
+  width: 100%;
+  display: flex;
+  align-items: center;
 }
 
 .hour-bar {
-  height: 10px;
+  height: 8px;
   background: #5da9ff;
   border-radius: 2px;
-  flex: 1;
+  min-width: 2px;
+  transition: width 500ms ease;
 }
 
 .hour-count {
   font-size: 11px;
   color: var(--muted);
-  min-width: 32px;
   text-align: right;
 }
 
