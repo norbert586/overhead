@@ -333,6 +333,153 @@ def stats_hourly():
     return jsonify(rows)
 
 
+@api_bp.route("/api/stats/altitude-distribution")
+def stats_altitude_distribution():
+    """Returns altitude bands: low (<10k), medium (10k-25k), high (>25k)"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT
+            CASE
+                WHEN altitude_ft = 'ground' OR altitude_ft IS NULL THEN 'ground'
+                WHEN CAST(altitude_ft AS INTEGER) < 10000 THEN 'low'
+                WHEN CAST(altitude_ft AS INTEGER) BETWEEN 10000 AND 25000 THEN 'medium'
+                ELSE 'high'
+            END as altitude_band,
+            COUNT(*) as count
+        FROM flights
+        GROUP BY altitude_band
+        ORDER BY
+            CASE altitude_band
+                WHEN 'ground' THEN 0
+                WHEN 'low' THEN 1
+                WHEN 'medium' THEN 2
+                WHEN 'high' THEN 3
+            END;
+    """)
+
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return jsonify(rows)
+
+
+@api_bp.route("/api/stats/aircraft-types")
+def stats_aircraft_types():
+    """Returns breakdown of most common aircraft types"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT
+            type_code,
+            model,
+            COUNT(*) AS event_count,
+            COUNT(DISTINCT COALESCE(NULLIF(reg, ''), hex)) AS unique_aircraft
+        FROM flights
+        WHERE type_code IS NOT NULL AND type_code != ''
+        GROUP BY type_code
+        ORDER BY event_count DESC
+        LIMIT 15;
+    """)
+
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return jsonify(rows)
+
+
+@api_bp.route("/api/stats/activity-by-day")
+def stats_activity_by_day():
+    """Returns activity levels by day of week"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT
+            CASE CAST(strftime('%w', last_seen) AS INTEGER)
+                WHEN 0 THEN 'Sun'
+                WHEN 1 THEN 'Mon'
+                WHEN 2 THEN 'Tue'
+                WHEN 3 THEN 'Wed'
+                WHEN 4 THEN 'Thu'
+                WHEN 5 THEN 'Fri'
+                WHEN 6 THEN 'Sat'
+            END as day_name,
+            CAST(strftime('%w', last_seen) AS INTEGER) as day_num,
+            COUNT(*) as events
+        FROM flights
+        WHERE last_seen >= datetime('now', '-7 days')
+        GROUP BY day_num
+        ORDER BY day_num;
+    """)
+
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return jsonify(rows)
+
+
+@api_bp.route("/api/stats/recent-notable")
+def stats_recent_notable():
+    """Returns recent government/military and unusual activity"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT
+            callsign,
+            reg,
+            classification,
+            COALESCE(airline_name, owner) as operator,
+            type_code,
+            model,
+            altitude_ft,
+            last_seen,
+            times_seen,
+            country_iso
+        FROM flights
+        WHERE classification IN ('government', 'cargo')
+           OR times_seen >= 5
+        ORDER BY last_seen DESC
+        LIMIT 20;
+    """)
+
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return jsonify(rows)
+
+
+@api_bp.route("/api/stats/classification-detailed")
+def stats_classification_detailed():
+    """Returns classification breakdown with percentages and 24h comparisons"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT
+            COALESCE(classification, 'unknown') AS classification,
+            COUNT(*) AS total_count,
+            COUNT(DISTINCT COALESCE(NULLIF(reg, ''), hex)) AS unique_aircraft,
+            CAST(AVG(
+                CASE WHEN altitude_ft != 'ground' AND altitude_ft IS NOT NULL
+                     THEN CAST(altitude_ft AS INTEGER)
+                END
+            ) AS INTEGER) AS avg_altitude,
+            SUM(CASE WHEN last_seen >= datetime('now', '-24 hours') THEN 1 ELSE 0 END) AS count_24h
+        FROM flights
+        GROUP BY classification
+        ORDER BY total_count DESC;
+    """)
+
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return jsonify(rows)
+
+
 
 
 
