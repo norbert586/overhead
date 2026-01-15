@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const API = "http://localhost:8080";
+const API = "http://192.168.86.234:8080";
 
 export default function Stats() {
   const [summary, setSummary] = useState(null);
