@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 
-const API = "http://localhost:8080";
-
-export default function Stats() {
+export default function Stats({ apiBase }) {
+  const API = apiBase || "http://192.168.86.234:8080";
   const [summary, setSummary] = useState(null);
   const [summary24h, setSummary24h] = useState(null);
   const [classificationDetailed, setClassificationDetailed] = useState([]);

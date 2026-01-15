@@ -12,6 +12,7 @@ export default function App() {
   const [view, setView] = useState("live");           // "live" | "stats"
   const [lastFetchMs, setLastFetchMs] = useState(Date.now());
   const [expandingAll, setExpandingAll] = useState(false);
+  const [currentTime, setCurrentTime] = useState(Date.now());
 
   /* -----------------------------
      Fetch flight list
@@ -29,6 +30,16 @@ export default function App() {
 
     fetchFlights();
     const interval = setInterval(fetchFlights, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  /* -----------------------------
+     Update timer every second
+  ------------------------------ */
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -158,7 +169,7 @@ export default function App() {
   /* -----------------------------
      Ops Metrics (footer)
   ------------------------------ */
-  const secondsSinceSweep = Math.max(0, Math.floor((Date.now() - lastFetchMs) / 1000));
+  const secondsSinceSweep = Math.max(0, Math.floor((currentTime - lastFetchMs) / 1000));
 
   const status =
     filtered.length === 0
@@ -204,13 +215,8 @@ export default function App() {
       <div className="card">
         {/* HEADER */}
         <header className="header">
-          <span>
+          <span className="main-title">
             FLIGHT INTELLIGENCE
-            {view === "live" && (
-              <span style={{ marginLeft: "12px", opacity: 0.6, fontSize: "12px" }}>
-                {filtered.length} {filtered.length === 1 ? "FLIGHT" : "FLIGHTS"}
-              </span>
-            )}
           </span>
 
           <nav className="nav">
@@ -436,23 +442,8 @@ export default function App() {
 
             {/* OPS FOOTER */}
                 <div className="status-bar">
-                  <span className={`status-dot ${filtered.length >= 15 ? "high" : ""}`} />
-                  <span className="status-label">AIRSPACE</span>
-                  <span className="status-value">{status}</span>
-
-                  <span className="status-sep" />
-
-                  <span className="load-label">LOAD</span>
-                  <span className="load-bars">
-                    <span className={`bar ${filtered.length >= 4 ? "on" : ""}`} />
-                    <span className={`bar ${filtered.length >= 9 ? "on" : ""}`} />
-                    <span className={`bar ${filtered.length >= 16 ? "on" : ""}`} />
-                  </span>
-
-                  <span className="status-sep" />
-
-                  <span className="status-label">SWEEP</span>
-                  <span className="status-value">{secondsSinceSweep}s</span>
+                  <span className="status-label">LAST SWEEP</span>
+                  <span className="status-value">{secondsSinceSweep}s ago</span>
                 </div>
           </>
         )}
