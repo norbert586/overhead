@@ -36,6 +36,10 @@ def search_by_time():
     if not datetime_str:
         return jsonify({"error": "datetime parameter required"}), 400
 
+    # Ensure datetime has seconds (datetime-local doesn't include them)
+    if len(datetime_str) == 16 and datetime_str[13] == ':':  # Format: YYYY-MM-DDTHH:MM
+        datetime_str += ":00"
+
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
@@ -48,7 +52,7 @@ def search_by_time():
             ABS(julianday(last_seen) - julianday(?)) * 86400 as time_diff_seconds
         FROM flights
         ORDER BY time_diff_seconds ASC
-        LIMIT 10;
+        LIMIT 50;
         """,
         (datetime_str,),
     )
@@ -56,11 +60,10 @@ def search_by_time():
     rows = [dict(r) for r in cur.fetchall()]
     conn.close()
 
-    # If no results or nearest is too far (>24 hours), return empty
-    if not rows or rows[0].get('time_diff_seconds', float('inf')) > 86400:
-        return jsonify([])
+    # Filter to flights within 7 days (more lenient than 24h)
+    filtered = [r for r in rows if r.get('time_diff_seconds', float('inf')) <= 604800]
 
-    return jsonify(rows)
+    return jsonify(filtered[:10])  # Return top 10 closest
 
 from .db import classify_flight  # add near your other imports
 
