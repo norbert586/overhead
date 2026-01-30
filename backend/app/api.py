@@ -28,6 +28,40 @@ def get_flights():
 
     return jsonify(rows)
 
+@api_bp.route("/api/flights/search-by-time")
+def search_by_time():
+    """Find flights nearest to a given datetime"""
+    datetime_str = request.args.get("datetime")
+
+    if not datetime_str:
+        return jsonify({"error": "datetime parameter required"}), 400
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    # Find flights closest to the provided datetime
+    # Using ABS to get time difference and sort by it
+    cur.execute(
+        """
+        SELECT *,
+            ABS(julianday(last_seen) - julianday(?)) * 86400 as time_diff_seconds
+        FROM flights
+        ORDER BY time_diff_seconds ASC
+        LIMIT 10;
+        """,
+        (datetime_str,),
+    )
+
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+
+    # If no results or nearest is too far (>24 hours), return empty
+    if not rows or rows[0].get('time_diff_seconds', float('inf')) > 86400:
+        return jsonify([])
+
+    return jsonify(rows)
+
 from .db import classify_flight  # add near your other imports
 
 @api_bp.route("/api/admin/classification-stats", methods=["GET"])

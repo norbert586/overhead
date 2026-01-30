@@ -14,6 +14,11 @@ export default function App() {
   const [expandingAll, setExpandingAll] = useState(false);
   const [currentTime, setCurrentTime] = useState(Date.now());
 
+  // Search drawer
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [datetimeSearch, setDatetimeSearch] = useState("");
+  const [datetimeResults, setDatetimeResults] = useState(null); // null | [] | [flights...]
+
   /* -----------------------------
      Fetch flight list
   ------------------------------ */
@@ -98,9 +103,41 @@ export default function App() {
   };
 
   /* -----------------------------
+     Datetime Search
+  ------------------------------ */
+  const handleDatetimeSearch = async () => {
+    if (!datetimeSearch) {
+      setDatetimeResults(null);
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/flights/search-by-time?datetime=${encodeURIComponent(datetimeSearch)}`
+      );
+      const data = await res.json();
+      setDatetimeResults(data);
+    } catch (err) {
+      console.error("Datetime search failed:", err);
+      setDatetimeResults([]);
+    }
+  };
+
+  const clearDatetimeSearch = () => {
+    setDatetimeSearch("");
+    setDatetimeResults(null);
+  };
+
+  /* -----------------------------
      Filtering
   ------------------------------ */
   const filtered = useMemo(() => {
+    // If datetime search is active, use those results
+    if (datetimeResults !== null) {
+      return datetimeResults;
+    }
+
+    // Otherwise use text search
     const q = query.trim().toLowerCase();
     if (!q) return flights;
 
@@ -116,7 +153,7 @@ export default function App() {
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q))
     );
-  }, [flights, query]);
+  }, [flights, query, datetimeResults]);
 
   /* -----------------------------
      Lazy aircraft photo loader
@@ -259,13 +296,59 @@ export default function App() {
         {/* LIVE VIEW */}
         {view === "live" && (
           <>
-            <div className="controls">
-              <input
-                className="search"
-                placeholder="Filter by callsign, reg, type, origin, dest..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
+            {/* Search Drawer */}
+            <div className="search-drawer">
+              <button
+                className="drawer-toggle"
+                onClick={() => setDrawerOpen(!drawerOpen)}
+              >
+                {drawerOpen ? "▼" : "▶"} SEARCH & FILTERS
+              </button>
+
+              {drawerOpen && (
+                <div className="drawer-content">
+                  {/* Text Search */}
+                  <div className="search-group">
+                    <label>Filter by text</label>
+                    <input
+                      className="search"
+                      placeholder="Callsign, reg, type, origin, dest..."
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Datetime Search */}
+                  <div className="search-group">
+                    <label>Search by datetime</label>
+                    <div className="datetime-search-row">
+                      <input
+                        type="datetime-local"
+                        className="datetime-input"
+                        value={datetimeSearch}
+                        onChange={(e) => setDatetimeSearch(e.target.value)}
+                      />
+                      <button
+                        className="search-button"
+                        onClick={handleDatetimeSearch}
+                      >
+                        Search
+                      </button>
+                      {datetimeResults !== null && (
+                        <button
+                          className="clear-button"
+                          onClick={clearDatetimeSearch}
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                    {datetimeResults !== null && datetimeResults.length === 0 && (
+                      <div className="search-message">No flights found near that time</div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="list">
