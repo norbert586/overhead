@@ -1085,6 +1085,189 @@ th {
   color: var(--muted);
 }
 
+/* ============================
+   MOBILE RESPONSIVE
+============================ */
+
+@media (max-width: 768px) {
+  .app {
+    padding: 12px 8px;
+  }
+
+  .card {
+    padding: 12px;
+    border-radius: 6px;
+  }
+
+  /* Header */
+  .header {
+    font-size: 12px;
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+  }
+
+  .main-title {
+    font-size: 13px;
+    letter-spacing: 0.1em;
+  }
+
+  .nav {
+    gap: 8px;
+  }
+
+  .nav button {
+    font-size: 10px;
+  }
+
+  .expand-glyph {
+    font-size: 16px;
+  }
+
+  /* Search drawer - more minimal on mobile */
+  .search-drawer {
+    margin-bottom: 8px;
+  }
+
+  .drawer-toggle {
+    padding: 8px 10px;
+    font-size: 10px;
+  }
+
+  .drawer-content {
+    padding: 10px;
+    gap: 12px;
+  }
+
+  .search-group label {
+    font-size: 10px;
+  }
+
+  .search,
+  .datetime-input {
+    font-size: 12px;
+    padding: 7px 8px;
+  }
+
+  .search-button,
+  .clear-button {
+    padding: 7px 12px;
+    font-size: 11px;
+  }
+
+  /* Flight list - simplified 3-column grid on mobile */
+  .row {
+    grid-template-columns: 1fr 90px 70px;
+    gap: 8px;
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+
+  /* Hide some columns on mobile, show only: time, callsign+type, route */
+  .row > *:nth-child(1) { display: block; }  /* time */
+  .row > *:nth-child(2) { display: block; }  /* callsign */
+  .row > *:nth-child(3) { display: none; }   /* type - hide */
+  .row > *:nth-child(4) { display: block; }  /* route */
+  .row > *:nth-child(5) { display: none; }   /* country - show in expanded */
+  .row > *:nth-child(6) { display: none; }   /* distance - show in expanded */
+
+  /* Inspection panel - single column on mobile */
+  .inspection {
+    padding: 10px;
+  }
+
+  .inspection-layout {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .inspection-grid {
+    grid-template-columns: 100px 1fr;
+    font-size: 11px;
+    gap: 4px 8px;
+  }
+
+  /* Status bar */
+  .status-bar {
+    font-size: 10px;
+    padding: 8px 10px;
+  }
+
+  /* Legend tooltip - adjust position */
+  .legend-tooltip {
+    right: 0;
+    left: auto;
+    font-size: 11px;
+  }
+
+  /* Stats page - stack snapshots vertically */
+  .snapshot {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .snapshot strong {
+    font-size: 16px;
+  }
+
+  .snapshot span {
+    font-size: 10px;
+  }
+
+  /* Threat assessment */
+  .threat-assessment {
+    flex-direction: column;
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .threat-indicator {
+    padding-right: 0;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 12px;
+  }
+
+  .threat-level {
+    font-size: 20px;
+    padding: 6px 12px;
+  }
+
+  .threat-stat strong {
+    font-size: 24px;
+  }
+
+  /* Notable feed - single column */
+  .notable-feed {
+    grid-template-columns: 1fr;
+  }
+
+  /* Weekly grid - smaller */
+  .weekly-grid {
+    height: 120px;
+    gap: 6px;
+  }
+}
+
+/* Extra small phones */
+@media (max-width: 400px) {
+  .row {
+    grid-template-columns: 1fr 80px;
+    font-size: 11px;
+  }
+
+  /* Only show time and callsign on very small screens */
+  .row > *:nth-child(4) { display: none; }  /* hide route too */
+
+  .main-title {
+    font-size: 12px;
+  }
+
+  .snapshot {
+    grid-template-columns: 1fr;
+  }
+}
+
 
 
 
