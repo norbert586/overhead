@@ -86,6 +86,20 @@ def init_db() -> None:
         """
     )
 
+    # ---- airports reference table ----
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS airports (
+            iata_code TEXT PRIMARY KEY,
+            name TEXT,
+            city TEXT,
+            country TEXT,
+            latitude REAL,
+            longitude REAL
+        );
+        """
+    )
+
         # ---- lightweight migrations (safe on existing DBs) ----
     cur.execute("PRAGMA table_info(flights);")
     cols = {row[1] for row in cur.fetchall()}  # row[1] is column name

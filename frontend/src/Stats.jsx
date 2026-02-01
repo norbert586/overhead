@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import RouteMap from "./RouteMap";
 
 export default function Stats({ apiBase }) {
   const API = apiBase || "http://192.168.86.234:8080";
@@ -132,6 +133,9 @@ export default function Stats({ apiBase }) {
           })}
         </div>
       </section>
+
+      {/* ROUTE MAP */}
+      <RouteMap apiBase={API} />
 
       {/* ALTITUDE DISTRIBUTION */}
       <section>
