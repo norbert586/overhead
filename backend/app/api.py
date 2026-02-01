@@ -517,6 +517,55 @@ def stats_classification_detailed():
     return jsonify(rows)
 
 
+@api_bp.route("/api/stats/routes-map")
+def stats_routes_map():
+    """Returns top routes with coordinates for map visualization"""
+    time_range = request.args.get("range", "all")  # "all" or "week"
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    # Build time filter
+    time_filter = ""
+    if time_range == "week":
+        time_filter = "WHERE f.last_seen >= datetime('now', '-7 days')"
+
+    query = f"""
+        SELECT
+            f.origin_iata,
+            f.dest_iata,
+            COUNT(*) AS flight_count,
+            o.latitude AS origin_lat,
+            o.longitude AS origin_lon,
+            o.city AS origin_city,
+            o.country AS origin_country,
+            d.latitude AS dest_lat,
+            d.longitude AS dest_lon,
+            d.city AS dest_city,
+            d.country AS dest_country,
+            GROUP_CONCAT(DISTINCT f.classification) AS classifications
+        FROM flights f
+        LEFT JOIN airports o ON f.origin_iata = o.iata_code
+        LEFT JOIN airports d ON f.dest_iata = d.iata_code
+        {time_filter}
+        {"AND" if time_filter else "WHERE"} f.origin_iata IS NOT NULL
+          AND f.dest_iata IS NOT NULL
+          AND o.latitude IS NOT NULL
+          AND d.latitude IS NOT NULL
+        GROUP BY f.origin_iata, f.dest_iata
+        HAVING flight_count >= 2
+        ORDER BY flight_count DESC
+        LIMIT 20;
+    """
+
+    cur.execute(query)
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+
+    return jsonify(rows)
+
+
 
 
 

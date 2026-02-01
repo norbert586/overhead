@@ -1,0 +1,195 @@
+/* Route Map Container */
+.route-map-container {
+  margin-bottom: 28px;
+}
+
+.route-map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.route-map-header h3 {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 0;
+}
+
+.route-map-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.route-map-toggle button {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.route-map-toggle button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--fg);
+}
+
+.route-map-toggle button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #0b1020;
+  font-weight: 600;
+}
+
+.route-map-loading,
+.route-map-empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+/* Leaflet overrides for dark theme */
+.leaflet-container {
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.leaflet-control-zoom {
+  border: 1px solid var(--line) !important;
+  background: var(--panel) !important;
+}
+
+.leaflet-control-zoom a {
+  background: var(--panel) !important;
+  color: var(--fg) !important;
+  border-bottom: 1px solid var(--line) !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(15, 23, 42, 0.8) !important;
+  color: var(--muted) !important;
+  font-size: 10px !important;
+}
+
+.leaflet-control-attribution a {
+  color: var(--accent) !important;
+}
+
+/* Popup styling */
+.leaflet-popup-content-wrapper {
+  background: var(--panel) !important;
+  color: var(--fg) !important;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.leaflet-popup-tip {
+  background: var(--panel) !important;
+  border: 1px solid var(--line);
+}
+
+.route-popup {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  min-width: 180px;
+}
+
+.route-popup-title {
+  font-size: 14px;
+  margin-bottom: 8px;
+  color: var(--accent);
+  text-align: center;
+}
+
+.route-popup-details {
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.route-popup-details div {
+  margin: 2px 0;
+}
+
+.route-popup-count {
+  text-align: center;
+  font-weight: 600;
+  color: var(--fg);
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+/* Legend */
+.route-map-legend {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  padding: 12px;
+  margin-top: 12px;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.legend-line {
+  width: 24px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .route-map-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .route-map-toggle {
+    width: 100%;
+  }
+
+  .route-map-toggle button {
+    flex: 1;
+    padding: 8px;
+    font-size: 10px;
+  }
+
+  .leaflet-container {
+    height: 400px !important;
+  }
+
+  .route-map-legend {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .legend-item {
+    font-size: 10px;
+  }
+}
