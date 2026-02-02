@@ -33,30 +33,37 @@ export default function RouteMap({ apiBase }) {
 
   // Initialize map
   useEffect(() => {
-    if (!mapRef.current || mapInstanceRef.current) return;
+    if (!mapVisible || !mapRef.current || mapInstanceRef.current) return;
 
-    const map = L.map(mapRef.current, {
-      center: [39.8283, -98.5795], // Center of US
-      zoom: 4,
-      zoomControl: true
-    });
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(() => {
+      if (!mapRef.current) return;
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      subdomains: 'abcd',
-      maxZoom: 20
-    }).addTo(map);
+      const map = L.map(mapRef.current, {
+        center: [39.8283, -98.5795], // Center of US
+        zoom: 4,
+        zoomControl: true
+      });
 
-    mapInstanceRef.current = map;
-    layerGroupRef.current = L.layerGroup().addTo(map);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20
+      }).addTo(map);
+
+      mapInstanceRef.current = map;
+      layerGroupRef.current = L.layerGroup().addTo(map);
+    }, 100);
 
     return () => {
+      clearTimeout(timer);
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
+        layerGroupRef.current = null;
       }
     };
-  }, []);
+  }, [mapVisible]);
 
   // Update routes on map
   useEffect(() => {

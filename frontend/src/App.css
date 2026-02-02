@@ -1234,6 +1234,33 @@ th {
   font-weight: 500;
 }
 
+.flight-modal-photo {
+  margin-bottom: 20px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.flight-modal-photo img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.photo-credit {
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  font-size: 10px;
+  color: var(--muted);
+  text-align: right;
+}
+
+.route-flag {
+  margin-left: 6px;
+  vertical-align: middle;
+  opacity: 0.9;
+}
+
 /* ============================
    MOBILE RESPONSIVE
 ============================ */

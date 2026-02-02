@@ -288,13 +288,23 @@ def stats_routes():
 
     cur.execute("""
         SELECT
-          origin_iata,
-          dest_iata,
-          COUNT(*) AS event_count
-        FROM flights
-        WHERE origin_iata IS NOT NULL
-          AND dest_iata IS NOT NULL
-        GROUP BY origin_iata, dest_iata
+          f.origin_iata,
+          f.dest_iata,
+          COUNT(*) AS event_count,
+          o.city AS origin_city,
+          o.country AS origin_country,
+          d.city AS dest_city,
+          d.country AS dest_country,
+          o.latitude AS origin_lat,
+          o.longitude AS origin_lon,
+          d.latitude AS dest_lat,
+          d.longitude AS dest_lon
+        FROM flights f
+        LEFT JOIN airports o ON f.origin_iata = o.iata_code
+        LEFT JOIN airports d ON f.dest_iata = d.iata_code
+        WHERE f.origin_iata IS NOT NULL
+          AND f.dest_iata IS NOT NULL
+        GROUP BY f.origin_iata, f.dest_iata
         HAVING event_count >= 2
         ORDER BY event_count DESC
         LIMIT 10;
@@ -529,7 +539,7 @@ def stats_routes_map():
     # Build time filter
     time_filter = ""
     if time_range == "week":
-        time_filter = "WHERE f.last_seen >= datetime('now', '-7 days')"
+        time_filter = "WHERE last_seen >= datetime('now', '-7 days')"
 
     # Optimized query with subquery for better performance
     query = f"""
