@@ -9,12 +9,12 @@ Run once to populate the airports reference table with coordinates:
 import sqlite3
 import urllib.request
 import csv
-import sys
+import os
 from pathlib import Path
 
-# Add app to path to import config
-sys.path.insert(0, str(Path(__file__).parent))
-from app.config import DB_PATH
+# Determine DB path (same logic as config.py but without dotenv dependency)
+SCRIPT_DIR = Path(__file__).parent
+DB_PATH = os.getenv("DB_PATH", str(SCRIPT_DIR / "data" / "flight_log.db"))
 
 OPENFLIGHTS_URL = "https://raw.githubusercontent.com/jpatokal/openflights/master/data/airports.dat"
 
