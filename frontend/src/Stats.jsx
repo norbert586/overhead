@@ -19,6 +19,9 @@ export default function Stats({ apiBase }) {
   const [activityByDay, setActivityByDay] = useState([]);
   const [recentNotable, setRecentNotable] = useState([]);
 
+  // Modal for notable flights
+  const [expandedFlight, setExpandedFlight] = useState(null);
+
   useEffect(() => {
     // Existing endpoints
     fetch(`${API}/api/stats/summary`).then(r => r.json()).then(setSummary);
@@ -260,8 +263,9 @@ export default function Stats({ apiBase }) {
             return (
               <div
                 key={`${f.callsign}-${f.last_seen}-${idx}`}
-                className="notable-item"
+                className="notable-item notable-item-clickable"
                 style={{ borderLeftColor: classColors[f.classification] || classColors.unknown }}
+                onClick={() => setExpandedFlight(f)}
               >
                 <div className="notable-header">
                   <span className="notable-callsign">{f.callsign || f.reg || 'UNKNOWN'}</span>
@@ -374,24 +378,90 @@ export default function Stats({ apiBase }) {
       </section>
 
       <section>
-        <h3>Top Routes</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Route</th>
-              <th>Events</th>
-            </tr>
-          </thead>
-          <tbody>
-            {routes.map((r, i) => (
-              <tr key={i}>
-                <td>{r.origin_iata} → {r.dest_iata}</td>
-                <td>{r.event_count}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <h3>TOP FLIGHT ROUTES</h3>
+        <div className="routes-list">
+          {routes.slice(0, 10).map((r, idx) => {
+            const maxRoute = routes[0]?.event_count || 1;
+            return (
+              <div key={`${r.origin_iata}-${r.dest_iata}-${idx}`} className="route-item">
+                <div className="route-header">
+                  <span className="route-rank">#{idx + 1}</span>
+                  <span className="route-path">
+                    <strong>{r.origin_iata}</strong>
+                    <span className="route-arrow">→</span>
+                    <strong>{r.dest_iata}</strong>
+                  </span>
+                  <span className="route-count">{r.event_count}</span>
+                </div>
+                <div className="route-bar-container">
+                  <div
+                    className="route-bar"
+                    style={{ width: `${(r.event_count / maxRoute) * 100}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </section>
+
+      {/* MODAL FOR EXPANDED FLIGHT */}
+      {expandedFlight && (
+        <div className="flight-modal-overlay" onClick={() => setExpandedFlight(null)}>
+          <div className="flight-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="flight-modal-header">
+              <h3>FLIGHT DETAILS</h3>
+              <button className="flight-modal-close" onClick={() => setExpandedFlight(null)}>×</button>
+            </div>
+
+            <div className="flight-modal-content">
+              <div className="flight-modal-grid">
+                <span className="label">Callsign</span>
+                <span className="value">{expandedFlight.callsign || '—'}</span>
+
+                <span className="label">Registration</span>
+                <span className="value">{expandedFlight.reg || '—'}</span>
+
+                <span className="label">Aircraft Type</span>
+                <span className="value">{expandedFlight.type_code || '—'}</span>
+
+                <span className="label">Model</span>
+                <span className="value">{expandedFlight.model || '—'}</span>
+
+                <span className="label">Operator</span>
+                <span className="value">{expandedFlight.operator || '—'}</span>
+
+                <span className="label">Classification</span>
+                <span className="value">{(expandedFlight.classification || 'unknown').toUpperCase()}</span>
+
+                <span className="label">Altitude</span>
+                <span className="value">{expandedFlight.altitude_ft || '—'}</span>
+
+                <span className="label">Country</span>
+                <span className="value">
+                  {expandedFlight.country_iso && (
+                    <>
+                      <img
+                        src={`https://flagcdn.com/16x12/${expandedFlight.country_iso.toLowerCase()}.png`}
+                        alt={expandedFlight.country_iso}
+                        style={{ verticalAlign: 'middle', marginRight: '8px' }}
+                      />
+                      {expandedFlight.country_iso}
+                    </>
+                  )}
+                  {!expandedFlight.country_iso && '—'}
+                </span>
+
+                <span className="label">Times Seen</span>
+                <span className="value">{expandedFlight.times_seen}</span>
+
+                <span className="label">Last Seen</span>
+                <span className="value">{expandedFlight.last_seen || '—'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
