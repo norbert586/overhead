@@ -9,9 +9,13 @@ Run once to populate the airports reference table with coordinates:
 import sqlite3
 import urllib.request
 import csv
+import os
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent / "overhead.db"
+# Determine DB path (same logic as config.py but without dotenv dependency)
+SCRIPT_DIR = Path(__file__).parent
+DB_PATH = os.getenv("DB_PATH", str(SCRIPT_DIR / "data" / "flight_log.db"))
+
 OPENFLIGHTS_URL = "https://raw.githubusercontent.com/jpatokal/openflights/master/data/airports.dat"
 
 
@@ -103,7 +107,8 @@ def populate_airports_table(airports):
 
 
 def main():
-    if not DB_PATH.exists():
+    db_path = Path(DB_PATH)
+    if not db_path.exists():
         print(f"Error: Database not found at {DB_PATH}")
         print("Please run the main application first to create the database")
         return
