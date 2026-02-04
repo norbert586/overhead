@@ -10,6 +10,27 @@
   margin-bottom: 8px;
 }
 
+.route-map-show-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.route-map-show-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--fg);
+}
+
+.route-map-controls {
+  margin-bottom: 12px;
+}
+
 .route-map-toggle {
   display: flex;
   gap: 8px;

@@ -21,9 +21,9 @@ export default function Stats({ apiBase }) {
   const [activityByDay, setActivityByDay] = useState([]);
   const [recentNotable, setRecentNotable] = useState([]);
 
-  // UI state
-  const [expandedAircraft, setExpandedAircraft] = useState(null);
-  const [mapOpen, setMapOpen] = useState(false);
+  // Modal for notable flights
+  const [expandedFlight, setExpandedFlight] = useState(null);
+  const [photoCache, setPhotoCache] = useState({}); // reg -> photo | null
 
   useEffect(() => {
     // Existing endpoints
@@ -43,6 +43,20 @@ export default function Stats({ apiBase }) {
     fetch(`${API}/api/stats/activity-by-day`).then(r => r.json()).then(setActivityByDay);
     fetch(`${API}/api/stats/recent-notable`).then(r => r.json()).then(setRecentNotable);
   }, []);
+
+  // Load aircraft photo
+  const loadPhotoForReg = async (reg) => {
+    if (!reg || photoCache[reg] !== undefined) return;
+
+    try {
+      const res = await fetch(`https://api.planespotters.net/pub/photos/reg/${reg}`);
+      const data = await res.json();
+      const photo = data?.photos?.length ? data.photos[0] : null;
+      setPhotoCache((prev) => ({ ...prev, [reg]: photo }));
+    } catch {
+      setPhotoCache((prev) => ({ ...prev, [reg]: null }));
+    }
+  };
 
   if (!summary || !summary24h) {
     return <div className="empty">Loading statistics…</div>;
@@ -281,8 +295,9 @@ export default function Stats({ apiBase }) {
             return (
               <div
                 key={`${f.callsign}-${f.last_seen}-${idx}`}
-                className="notable-item"
+                className="notable-item notable-item-clickable"
                 style={{ borderLeftColor: classColors[f.classification] || classColors.unknown }}
+                onClick={() => setExpandedFlight(f)}
               >
                 <div className="notable-header">
                   <span className="notable-callsign">{f.callsign || f.reg || 'UNKNOWN'}</span>
@@ -460,49 +475,206 @@ export default function Stats({ apiBase }) {
         </table>
       </section>
 
-      {/* ROUTE MAP - COLLAPSIBLE DRAWER */}
-      <section>
-        <div
-          className="map-drawer-toggle"
-          onClick={() => setMapOpen(!mapOpen)}
-        >
-          <h3>FLIGHT ROUTE MAP</h3>
-          <span className="map-drawer-arrow">{mapOpen ? '▲' : '▼'}</span>
-        </div>
-        {mapOpen && <RouteMap apiBase={API} />}
-      </section>
-
-      {/* TOP FLIGHT ROUTES - COMPACT */}
       <section>
         <h3>TOP FLIGHT ROUTES</h3>
         <div className="routes-list">
-          {routes.map((r, i) => (
-            <div key={i} className="route-item">
-              <span className="route-rank">#{i + 1}</span>
-              <div className="route-pair">
-                <div className="route-endpoint">
-                  <span className="route-iata">{r.origin_iata}</span>
-                  {r.origin_city && <span className="route-city">{r.origin_city}</span>}
+          {routes.slice(0, 10).map((r, idx) => {
+            const maxRoute = routes[0]?.event_count || 1;
+
+            // Extract country ISO codes from the airport data if available
+            // The country_iso might be in the data or we need to infer it
+            const getCountryISO = (country) => {
+              // Common country name to ISO mapping for major countries
+              const countryMap = {
+                'United States': 'us',
+                'United Kingdom': 'gb',
+                'Canada': 'ca',
+                'Mexico': 'mx',
+                'France': 'fr',
+                'Germany': 'de',
+                'Spain': 'es',
+                'Italy': 'it',
+                'Netherlands': 'nl',
+                'Belgium': 'be',
+                'Switzerland': 'ch',
+                'Austria': 'at',
+                'Portugal': 'pt',
+                'Greece': 'gr',
+                'Turkey': 'tr',
+                'Japan': 'jp',
+                'China': 'cn',
+                'South Korea': 'kr',
+                'Australia': 'au',
+                'New Zealand': 'nz',
+                'Brazil': 'br',
+                'Argentina': 'ar',
+                'India': 'in',
+                'Russia': 'ru',
+                'South Africa': 'za',
+                'UAE': 'ae',
+                'Saudi Arabia': 'sa',
+                'Qatar': 'qa',
+                'Singapore': 'sg',
+                'Thailand': 'th',
+                'Malaysia': 'my',
+                'Indonesia': 'id',
+                'Philippines': 'ph',
+                'Vietnam': 'vn',
+                'Israel': 'il',
+                'Egypt': 'eg',
+                'Morocco': 'ma',
+                'Kenya': 'ke',
+                'Nigeria': 'ng',
+                'Chile': 'cl',
+                'Colombia': 'co',
+                'Peru': 'pe',
+                'Venezuela': 've',
+                'Ecuador': 'ec',
+                'Poland': 'pl',
+                'Czech Republic': 'cz',
+                'Hungary': 'hu',
+                'Romania': 'ro',
+                'Ukraine': 'ua',
+                'Sweden': 'se',
+                'Norway': 'no',
+                'Denmark': 'dk',
+                'Finland': 'fi',
+                'Iceland': 'is',
+                'Ireland': 'ie',
+                'Luxembourg': 'lu'
+              };
+              return countryMap[country] || null;
+            };
+
+            const originISO = getCountryISO(r.origin_country);
+            const destISO = getCountryISO(r.dest_country);
+
+            return (
+              <div key={`${r.origin_iata}-${r.dest_iata}-${idx}`} className="route-item">
+                <div className="route-header">
+                  <span className="route-rank">#{idx + 1}</span>
+                  <div className="route-path">
+                    <div className="route-airport">
+                      <strong>{r.origin_iata}</strong>
+                      {r.origin_city && <span className="route-city">{r.origin_city}</span>}
+                      {originISO && (
+                        <img
+                          src={`https://flagcdn.com/16x12/${originISO}.png`}
+                          alt={r.origin_country}
+                          className="route-flag"
+                        />
+                      )}
+                    </div>
+                    <span className="route-arrow">→</span>
+                    <div className="route-airport">
+                      <strong>{r.dest_iata}</strong>
+                      {r.dest_city && <span className="route-city">{r.dest_city}</span>}
+                      {destISO && (
+                        <img
+                          src={`https://flagcdn.com/16x12/${destISO}.png`}
+                          alt={r.dest_country}
+                          className="route-flag"
+                        />
+                      )}
+                    </div>
+                  </div>
+                  <span className="route-count">{r.event_count}</span>
                 </div>
-                <span className="route-arrow">→</span>
-                <div className="route-endpoint">
-                  <span className="route-iata">{r.dest_iata}</span>
-                  {r.dest_city && <span className="route-city">{r.dest_city}</span>}
-                </div>
-              </div>
-              <div className="route-count-col">
-                <span className="route-count">{r.event_count}</span>
-                <div className="route-bar-track">
+                <div className="route-bar-container">
                   <div
-                    className="route-bar-fill"
-                    style={{ width: `${(r.event_count / maxRouteCount) * 100}%` }}
+                    className="route-bar"
+                    style={{ width: `${(r.event_count / maxRoute) * 100}%` }}
                   />
                 </div>
+                {(r.origin_country || r.dest_country) && (
+                  <div className="route-countries">
+                    {r.origin_country && <span>{r.origin_country}</span>}
+                    {r.origin_country && r.dest_country && <span className="stat-sep">•</span>}
+                    {r.dest_country && <span>{r.dest_country}</span>}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
+
+      {/* MODAL FOR EXPANDED FLIGHT */}
+      {expandedFlight && (
+        <div className="flight-modal-overlay" onClick={() => setExpandedFlight(null)}>
+          <div className="flight-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="flight-modal-header">
+              <h3>FLIGHT DETAILS</h3>
+              <button className="flight-modal-close" onClick={() => setExpandedFlight(null)}>×</button>
+            </div>
+
+            <div className="flight-modal-content">
+              {/* Aircraft Photo */}
+              {expandedFlight.reg && (() => {
+                if (photoCache[expandedFlight.reg] === undefined) {
+                  loadPhotoForReg(expandedFlight.reg);
+                }
+                const photo = photoCache[expandedFlight.reg];
+                return photo ? (
+                  <div className="flight-modal-photo">
+                    <img
+                      src={photo.thumbnail_large?.src || photo.thumbnail?.src}
+                      alt={`${expandedFlight.reg}`}
+                    />
+                    <div className="photo-credit">
+                      Photo: {photo.photographer} via Planespotters.net
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+
+              <div className="flight-modal-grid">
+                <span className="label">Callsign</span>
+                <span className="value">{expandedFlight.callsign || '—'}</span>
+
+                <span className="label">Registration</span>
+                <span className="value">{expandedFlight.reg || '—'}</span>
+
+                <span className="label">Aircraft Type</span>
+                <span className="value">{expandedFlight.type_code || '—'}</span>
+
+                <span className="label">Model</span>
+                <span className="value">{expandedFlight.model || '—'}</span>
+
+                <span className="label">Operator</span>
+                <span className="value">{expandedFlight.operator || '—'}</span>
+
+                <span className="label">Classification</span>
+                <span className="value">{(expandedFlight.classification || 'unknown').toUpperCase()}</span>
+
+                <span className="label">Altitude</span>
+                <span className="value">{expandedFlight.altitude_ft || '—'}</span>
+
+                <span className="label">Country</span>
+                <span className="value">
+                  {expandedFlight.country_iso && (
+                    <>
+                      <img
+                        src={`https://flagcdn.com/16x12/${expandedFlight.country_iso.toLowerCase()}.png`}
+                        alt={expandedFlight.country_iso}
+                        style={{ verticalAlign: 'middle', marginRight: '8px' }}
+                      />
+                      {expandedFlight.country_iso}
+                    </>
+                  )}
+                  {!expandedFlight.country_iso && '—'}
+                </span>
+
+                <span className="label">Times Seen</span>
+                <span className="value">{expandedFlight.times_seen}</span>
+
+                <span className="label">Last Seen</span>
+                <span className="value">{expandedFlight.last_seen || '—'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
