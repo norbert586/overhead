@@ -208,7 +208,10 @@ def stats_top_aircraft():
           type_code,
           COALESCE(airline_name, owner) AS operator,
           country_iso,
-          MAX(times_seen) AS times_seen
+          MAX(times_seen) AS times_seen,
+          classification,
+          manufacturer,
+          MAX(last_seen) AS last_seen
         FROM flights
         WHERE reg IS NOT NULL
         GROUP BY reg
@@ -234,7 +237,19 @@ def stats_top_operators():
 
           COUNT(
             DISTINCT COALESCE(NULLIF(reg, ''), hex)
-          ) AS unique_aircraft
+          ) AS unique_aircraft,
+
+          (SELECT SUBSTR(f2.callsign, 1, 3)
+           FROM flights f2
+           WHERE COALESCE(NULLIF(f2.airline_name, ''), NULLIF(f2.owner, '')) =
+                 COALESCE(NULLIF(flights.airline_name, ''), NULLIF(flights.owner, ''))
+             AND f2.callsign IS NOT NULL
+             AND LENGTH(f2.callsign) >= 3
+             AND UNICODE(SUBSTR(f2.callsign, 1, 1)) BETWEEN 65 AND 90
+           GROUP BY SUBSTR(f2.callsign, 1, 3)
+           ORDER BY COUNT(*) DESC
+           LIMIT 1
+          ) AS icao_code
 
         FROM flights
         WHERE airline_name IS NOT NULL
@@ -423,6 +438,7 @@ def stats_aircraft_types():
         SELECT
             type_code,
             model,
+            MAX(manufacturer) AS manufacturer,
             COUNT(*) AS event_count,
             COUNT(DISTINCT COALESCE(NULLIF(reg, ''), hex)) AS unique_aircraft
         FROM flights
