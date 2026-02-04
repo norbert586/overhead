@@ -478,6 +478,9 @@ export default function Stats({ apiBase }) {
         </table>
       </section>
 
+      {/* ROUTE MAP - collapsible, built-in show/hide */}
+      <RouteMap apiBase={API} />
+
       <section>
         <h3>TOP FLIGHT ROUTES</h3>
         <div className="routes-list">
