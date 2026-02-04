@@ -25,6 +25,9 @@ export default function Stats({ apiBase }) {
   const [expandedFlight, setExpandedFlight] = useState(null);
   const [photoCache, setPhotoCache] = useState({}); // reg -> photo | null
 
+  // UI state
+  const [expandedAircraft, setExpandedAircraft] = useState(null);
+
   useEffect(() => {
     // Existing endpoints
     fetch(`${API}/api/stats/summary`).then(r => r.json()).then(setSummary);
