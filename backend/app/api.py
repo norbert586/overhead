@@ -208,7 +208,10 @@ def stats_top_aircraft():
           type_code,
           COALESCE(airline_name, owner) AS operator,
           country_iso,
-          MAX(times_seen) AS times_seen
+          MAX(times_seen) AS times_seen,
+          classification,
+          manufacturer,
+          MAX(last_seen) AS last_seen
         FROM flights
         WHERE reg IS NOT NULL
         GROUP BY reg
@@ -234,7 +237,19 @@ def stats_top_operators():
 
           COUNT(
             DISTINCT COALESCE(NULLIF(reg, ''), hex)
-          ) AS unique_aircraft
+          ) AS unique_aircraft,
+
+          (SELECT SUBSTR(f2.callsign, 1, 3)
+           FROM flights f2
+           WHERE COALESCE(NULLIF(f2.airline_name, ''), NULLIF(f2.owner, '')) =
+                 COALESCE(NULLIF(flights.airline_name, ''), NULLIF(flights.owner, ''))
+             AND f2.callsign IS NOT NULL
+             AND LENGTH(f2.callsign) >= 3
+             AND UNICODE(SUBSTR(f2.callsign, 1, 1)) BETWEEN 65 AND 90
+           GROUP BY SUBSTR(f2.callsign, 1, 3)
+           ORDER BY COUNT(*) DESC
+           LIMIT 1
+          ) AS icao_code
 
         FROM flights
         WHERE airline_name IS NOT NULL
@@ -288,13 +303,19 @@ def stats_routes():
 
     cur.execute("""
         SELECT
-          origin_iata,
-          dest_iata,
-          COUNT(*) AS event_count
-        FROM flights
-        WHERE origin_iata IS NOT NULL
-          AND dest_iata IS NOT NULL
-        GROUP BY origin_iata, dest_iata
+          f.origin_iata,
+          f.dest_iata,
+          COUNT(*) AS event_count,
+          o.city AS origin_city,
+          o.country AS origin_country,
+          d.city AS dest_city,
+          d.country AS dest_country
+        FROM flights f
+        LEFT JOIN airports o ON f.origin_iata = o.iata_code
+        LEFT JOIN airports d ON f.dest_iata = d.iata_code
+        WHERE f.origin_iata IS NOT NULL
+          AND f.dest_iata IS NOT NULL
+        GROUP BY f.origin_iata, f.dest_iata
         HAVING event_count >= 2
         ORDER BY event_count DESC
         LIMIT 10;
@@ -413,6 +434,7 @@ def stats_aircraft_types():
         SELECT
             type_code,
             model,
+            MAX(manufacturer) AS manufacturer,
             COUNT(*) AS event_count,
             COUNT(DISTINCT COALESCE(NULLIF(reg, ''), hex)) AS unique_aircraft
         FROM flights

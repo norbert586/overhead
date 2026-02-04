@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import "./app.css";
+import "./App.css";
 import Stats from "./Stats";
 
 const API_BASE = "http://192.168.86.234:8080"; // your LAN IP
