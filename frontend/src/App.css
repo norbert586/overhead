@@ -1350,6 +1350,33 @@ th {
 }
 
 /* ============================
+   MAP DRAWER
+============================ */
+.map-drawer-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 10px 12px;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  transition: background 150ms ease;
+}
+
+.map-drawer-toggle:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+.map-drawer-toggle h3 {
+  margin: 0;
+}
+
+.map-drawer-arrow {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+/* ============================
    ROUTES LIST - COMPACT
 ============================ */
 .routes-list {

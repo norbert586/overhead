@@ -23,6 +23,7 @@ export default function Stats({ apiBase }) {
 
   // UI state
   const [expandedAircraft, setExpandedAircraft] = useState(null);
+  const [mapOpen, setMapOpen] = useState(false);
 
   useEffect(() => {
     // Existing endpoints
@@ -146,9 +147,6 @@ export default function Stats({ apiBase }) {
           })}
         </div>
       </section>
-
-      {/* ROUTE MAP */}
-      <RouteMap apiBase={API} />
 
       {/* ALTITUDE DISTRIBUTION */}
       <section>
@@ -460,6 +458,18 @@ export default function Stats({ apiBase }) {
             ))}
           </tbody>
         </table>
+      </section>
+
+      {/* ROUTE MAP - COLLAPSIBLE DRAWER */}
+      <section>
+        <div
+          className="map-drawer-toggle"
+          onClick={() => setMapOpen(!mapOpen)}
+        >
+          <h3>FLIGHT ROUTE MAP</h3>
+          <span className="map-drawer-arrow">{mapOpen ? '▲' : '▼'}</span>
+        </div>
+        {mapOpen && <RouteMap apiBase={API} />}
       </section>
 
       {/* TOP FLIGHT ROUTES - COMPACT */}

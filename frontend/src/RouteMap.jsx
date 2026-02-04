@@ -5,7 +5,7 @@ import "./RouteMap.css";
 
 export default function RouteMap({ apiBase }) {
   const [routes, setRoutes] = useState([]);
-  const [timeRange, setTimeRange] = useState("all"); // "all" or "week"
+  const [timeRange, setTimeRange] = useState("all");
   const [loading, setLoading] = useState(true);
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -33,7 +33,7 @@ export default function RouteMap({ apiBase }) {
     if (!mapRef.current || mapInstanceRef.current) return;
 
     const map = L.map(mapRef.current, {
-      center: [39.8283, -98.5795], // Center of US
+      center: [39.8283, -98.5795],
       zoom: 4,
       zoomControl: true
     });
@@ -47,6 +47,9 @@ export default function RouteMap({ apiBase }) {
     mapInstanceRef.current = map;
     layerGroupRef.current = L.layerGroup().addTo(map);
 
+    // Ensure tiles render correctly after mount
+    setTimeout(() => map.invalidateSize(), 150);
+
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
@@ -59,7 +62,6 @@ export default function RouteMap({ apiBase }) {
   useEffect(() => {
     if (!mapInstanceRef.current || !layerGroupRef.current) return;
 
-    // Clear existing routes
     layerGroupRef.current.clearLayers();
 
     if (routes.length === 0) return;
@@ -74,26 +76,37 @@ export default function RouteMap({ apiBase }) {
 
       bounds.push(...positions);
 
-      // Determine line color based on classification
       const getRouteColor = (classifications) => {
         if (!classifications) return "#9aa4b2";
         const cls = classifications.toLowerCase();
-        if (cls.includes("government")) return "rgba(220, 80, 80, 0.8)";
-        if (cls.includes("cargo")) return "rgba(139, 92, 246, 0.8)";
-        if (cls.includes("commercial")) return "rgba(100, 140, 255, 0.8)";
-        if (cls.includes("private")) return "rgba(234, 179, 8, 0.8)";
+        if (cls.includes("government")) return "rgba(220, 80, 80, 0.85)";
+        if (cls.includes("cargo")) return "rgba(139, 92, 246, 0.85)";
+        if (cls.includes("commercial")) return "rgba(100, 140, 255, 0.85)";
+        if (cls.includes("private")) return "rgba(234, 179, 8, 0.85)";
         return "#9aa4b2";
       };
 
-      // Calculate line thickness based on flight count
       const getRouteWeight = (count) => {
-        return Math.min(Math.log(count + 1) * 2, 8);
+        return Math.min(1 + Math.log(count + 1) * 0.5, 3);
       };
 
+      const color = getRouteColor(route.classifications);
+
+      // Subtle glow layer underneath
+      const glowLine = L.polyline(positions, {
+        color: color,
+        weight: getRouteWeight(route.flight_count) + 3,
+        opacity: 0.1,
+        interactive: false
+      });
+      layerGroupRef.current.addLayer(glowLine);
+
+      // Main route line
       const polyline = L.polyline(positions, {
-        color: getRouteColor(route.classifications),
+        color: color,
         weight: getRouteWeight(route.flight_count),
-        opacity: 0.7
+        opacity: 0.75,
+        dashArray: '6 3'
       });
 
       const popupContent = `
@@ -116,7 +129,6 @@ export default function RouteMap({ apiBase }) {
       layerGroupRef.current.addLayer(polyline);
     });
 
-    // Fit map to bounds
     if (bounds.length > 0) {
       mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] });
     }
@@ -124,8 +136,7 @@ export default function RouteMap({ apiBase }) {
 
   return (
     <div className="route-map-container">
-      <div className="route-map-header">
-        <h3>FLIGHT ROUTES</h3>
+      <div className="route-map-controls">
         <div className="route-map-toggle">
           <button
             className={timeRange === "all" ? "active" : ""}
@@ -152,29 +163,26 @@ export default function RouteMap({ apiBase }) {
 
       <div
         ref={mapRef}
-        style={{
-          height: routes.length > 0 ? "500px" : "0px",
-          width: "100%",
-          display: routes.length > 0 ? "block" : "none"
-        }}
+        className="route-map-canvas"
+        style={{ display: loading && routes.length === 0 ? 'none' : 'block' }}
       />
 
       {routes.length > 0 && (
         <div className="route-map-legend">
           <div className="legend-item">
-            <div className="legend-line" style={{ backgroundColor: "rgba(100, 140, 255, 0.8)" }}></div>
+            <div className="legend-line" style={{ backgroundColor: "rgba(100, 140, 255, 0.85)" }}></div>
             <span>Commercial</span>
           </div>
           <div className="legend-item">
-            <div className="legend-line" style={{ backgroundColor: "rgba(234, 179, 8, 0.8)" }}></div>
+            <div className="legend-line" style={{ backgroundColor: "rgba(234, 179, 8, 0.85)" }}></div>
             <span>Private</span>
           </div>
           <div className="legend-item">
-            <div className="legend-line" style={{ backgroundColor: "rgba(220, 80, 80, 0.8)" }}></div>
+            <div className="legend-line" style={{ backgroundColor: "rgba(220, 80, 80, 0.85)" }}></div>
             <span>Government</span>
           </div>
           <div className="legend-item">
-            <div className="legend-line" style={{ backgroundColor: "rgba(139, 92, 246, 0.8)" }}></div>
+            <div className="legend-line" style={{ backgroundColor: "rgba(139, 92, 246, 0.85)" }}></div>
             <span>Cargo</span>
           </div>
         </div>

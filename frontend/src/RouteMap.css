@@ -3,18 +3,11 @@
   margin-bottom: 28px;
 }
 
-.route-map-header {
+.route-map-controls {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  margin-bottom: 12px;
-}
-
-.route-map-header h3 {
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  margin: 0;
+  margin-bottom: 8px;
 }
 
 .route-map-toggle {
@@ -55,6 +48,11 @@
   background: var(--panel-soft);
   border: 1px solid var(--line);
   border-radius: 6px;
+}
+
+.route-map-canvas {
+  height: 400px;
+  width: 100%;
 }
 
 /* Leaflet overrides for dark theme */
@@ -180,8 +178,8 @@
     font-size: 10px;
   }
 
-  .leaflet-container {
-    height: 400px !important;
+  .route-map-canvas {
+    height: 300px;
   }
 
   .route-map-legend {
