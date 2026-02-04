@@ -6,12 +6,15 @@ import "./RouteMap.css";
 export default function RouteMap({ apiBase }) {
   const [routes, setRoutes] = useState([]);
   const [timeRange, setTimeRange] = useState("all"); // "all" or "week"
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [mapVisible, setMapVisible] = useState(false);
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const layerGroupRef = useRef(null);
 
   useEffect(() => {
+    if (!mapVisible) return; // Don't fetch until user expands map
+
     const fetchRoutes = async () => {
       setLoading(true);
       try {
@@ -26,34 +29,41 @@ export default function RouteMap({ apiBase }) {
     };
 
     fetchRoutes();
-  }, [apiBase, timeRange]);
+  }, [apiBase, timeRange, mapVisible]);
 
   // Initialize map
   useEffect(() => {
-    if (!mapRef.current || mapInstanceRef.current) return;
+    if (!mapVisible || !mapRef.current || mapInstanceRef.current) return;
 
-    const map = L.map(mapRef.current, {
-      center: [39.8283, -98.5795], // Center of US
-      zoom: 4,
-      zoomControl: true
-    });
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(() => {
+      if (!mapRef.current) return;
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      subdomains: 'abcd',
-      maxZoom: 20
-    }).addTo(map);
+      const map = L.map(mapRef.current, {
+        center: [39.8283, -98.5795], // Center of US
+        zoom: 4,
+        zoomControl: true
+      });
 
-    mapInstanceRef.current = map;
-    layerGroupRef.current = L.layerGroup().addTo(map);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20
+      }).addTo(map);
+
+      mapInstanceRef.current = map;
+      layerGroupRef.current = L.layerGroup().addTo(map);
+    }, 100);
 
     return () => {
+      clearTimeout(timer);
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
+        layerGroupRef.current = null;
       }
     };
-  }, []);
+  }, [mapVisible]);
 
   // Update routes on map
   useEffect(() => {
@@ -126,58 +136,71 @@ export default function RouteMap({ apiBase }) {
     <div className="route-map-container">
       <div className="route-map-header">
         <h3>FLIGHT ROUTES</h3>
-        <div className="route-map-toggle">
-          <button
-            className={timeRange === "all" ? "active" : ""}
-            onClick={() => setTimeRange("all")}
-          >
-            ALL TIME
-          </button>
-          <button
-            className={timeRange === "week" ? "active" : ""}
-            onClick={() => setTimeRange("week")}
-          >
-            THIS WEEK
-          </button>
-        </div>
+        <button
+          className="route-map-show-btn"
+          onClick={() => setMapVisible(!mapVisible)}
+        >
+          {mapVisible ? "▼ HIDE MAP" : "▶ SHOW MAP"}
+        </button>
       </div>
 
-      {loading && <div className="route-map-loading">Loading routes...</div>}
+      {mapVisible && (
+        <>
+          <div className="route-map-controls">
+            <div className="route-map-toggle">
+              <button
+                className={timeRange === "all" ? "active" : ""}
+                onClick={() => setTimeRange("all")}
+              >
+                ALL TIME
+              </button>
+              <button
+                className={timeRange === "week" ? "active" : ""}
+                onClick={() => setTimeRange("week")}
+              >
+                THIS WEEK
+              </button>
+            </div>
+          </div>
 
-      {!loading && routes.length === 0 && (
-        <div className="route-map-empty">
-          No route data available. Routes require both origin and destination airports.
-        </div>
-      )}
+          {loading && <div className="route-map-loading">Loading routes...</div>}
 
-      <div
-        ref={mapRef}
-        style={{
-          height: routes.length > 0 ? "500px" : "0px",
-          width: "100%",
-          display: routes.length > 0 ? "block" : "none"
-        }}
-      />
+          {!loading && routes.length === 0 && (
+            <div className="route-map-empty">
+              No route data available. Routes require both origin and destination airports.
+            </div>
+          )}
 
-      {routes.length > 0 && (
-        <div className="route-map-legend">
-          <div className="legend-item">
-            <div className="legend-line" style={{ backgroundColor: "rgba(100, 140, 255, 0.8)" }}></div>
-            <span>Commercial</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-line" style={{ backgroundColor: "rgba(234, 179, 8, 0.8)" }}></div>
-            <span>Private</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-line" style={{ backgroundColor: "rgba(220, 80, 80, 0.8)" }}></div>
-            <span>Government</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-line" style={{ backgroundColor: "rgba(139, 92, 246, 0.8)" }}></div>
-            <span>Cargo</span>
-          </div>
-        </div>
+          <div
+            ref={mapRef}
+            style={{
+              height: routes.length > 0 ? "500px" : "0px",
+              width: "100%",
+              display: routes.length > 0 ? "block" : "none"
+            }}
+          />
+
+          {routes.length > 0 && (
+            <div className="route-map-legend">
+              <div className="legend-item">
+                <div className="legend-line" style={{ backgroundColor: "rgba(100, 140, 255, 0.8)" }}></div>
+                <span>Commercial</span>
+              </div>
+              <div className="legend-item">
+                <div className="legend-line" style={{ backgroundColor: "rgba(234, 179, 8, 0.8)" }}></div>
+                <span>Private</span>
+              </div>
+              <div className="legend-item">
+                <div className="legend-line" style={{ backgroundColor: "rgba(220, 80, 80, 0.8)" }}></div>
+                <span>Government</span>
+              </div>
+              <div className="legend-item">
+                <div className="legend-line" style={{ backgroundColor: "rgba(139, 92, 246, 0.8)" }}></div>
+                <span>Cargo</span>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

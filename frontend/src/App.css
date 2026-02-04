@@ -1010,7 +1010,11 @@ th {
   transition: transform 150ms ease, box-shadow 150ms ease;
 }
 
-.notable-item:hover {
+.notable-item-clickable {
+  cursor: pointer;
+}
+
+.notable-item-clickable:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
@@ -1083,6 +1087,178 @@ th {
   gap: 6px;
   font-size: 10px;
   color: var(--muted);
+}
+
+/* Routes List */
+.routes-list {
+  display: grid;
+  gap: 10px;
+}
+
+.route-item {
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.route-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.route-rank {
+  font-size: 11px;
+  color: var(--muted);
+  min-width: 24px;
+}
+
+.route-path {
+  flex: 1;
+  font-size: 14px;
+  color: var(--fg);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.route-arrow {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.route-count {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  min-width: 50px;
+  text-align: right;
+}
+
+.route-bar-container {
+  height: 6px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.route-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, rgba(234,179,8,0.5) 100%);
+  border-radius: 2px;
+  transition: width 500ms ease;
+}
+
+/* Flight Modal */
+.flight-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.flight-modal {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.flight-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.flight-modal-header h3 {
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  color: var(--fg);
+  margin: 0;
+}
+
+.flight-modal-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 32px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 150ms ease;
+}
+
+.flight-modal-close:hover {
+  color: var(--fg);
+}
+
+.flight-modal-content {
+  padding: 20px;
+}
+
+.flight-modal-grid {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  row-gap: 12px;
+  column-gap: 16px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 13px;
+}
+
+.flight-modal-grid .label {
+  color: var(--muted);
+}
+
+.flight-modal-grid .value {
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.flight-modal-photo {
+  margin-bottom: 20px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.flight-modal-photo img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.photo-credit {
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  font-size: 10px;
+  color: var(--muted);
+  text-align: right;
+}
+
+.route-flag {
+  margin-left: 6px;
+  vertical-align: middle;
+  opacity: 0.9;
 }
 
 /* ============================
