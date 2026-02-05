@@ -208,6 +208,7 @@ html, body {
   padding: 6px 4px;
   white-space: nowrap;
   cursor: pointer;
+  position: relative;
 }
 
 .row:hover {
