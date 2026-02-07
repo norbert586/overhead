@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import Stats from "./Stats";
 
@@ -19,6 +19,9 @@ export default function App() {
   const [datetimeSearch, setDatetimeSearch] = useState("");
   const [datetimeResults, setDatetimeResults] = useState(null); // null | [] | [flights...]
 
+  // Track when each flight was first seen by the frontend (for fresh indicator)
+  const firstSeenRef = useRef({});
+
   /* -----------------------------
      Fetch flight list
   ------------------------------ */
@@ -27,6 +30,20 @@ export default function App() {
       fetch(`${API_BASE}/api/flights?limit=150`)
         .then((res) => res.json())
         .then((data) => {
+          const now = Date.now();
+          // Record first-seen time for new flights
+          data.forEach((f) => {
+            if (f.id && !firstSeenRef.current[f.id]) {
+              firstSeenRef.current[f.id] = now;
+            }
+          });
+          // Clean up old entries (flights no longer in list)
+          const activeIds = new Set(data.map((f) => f.id));
+          Object.keys(firstSeenRef.current).forEach((id) => {
+            if (!activeIds.has(Number(id))) {
+              delete firstSeenRef.current[id];
+            }
+          });
           setFlights(data);
           setLastFetchMs(Date.now());
         })
@@ -359,11 +376,13 @@ export default function App() {
               {filtered.map((f, i) => {
                 const isOpen = expandedId === "ALL" || expandedId === f.id;
 
-                // row age fade
+                // row age fade (based on backend last_seen)
                 const ageSec =
                   (Date.now() - new Date(f.last_seen).getTime()) / 1000;
 
-                const isFresh = ageSec < 8;
+                // fresh indicator based on when frontend first saw this flight
+                const firstSeenMs = firstSeenRef.current[f.id] || Date.now();
+                const isFresh = (Date.now() - firstSeenMs) < 8000;
 
                 const opacity =
                   ageSec < 30 ? 1 :
