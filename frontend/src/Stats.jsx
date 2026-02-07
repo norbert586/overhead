@@ -24,6 +24,7 @@ export default function Stats({ apiBase }) {
   // Modal for notable flights
   const [expandedFlight, setExpandedFlight] = useState(null);
   const [photoCache, setPhotoCache] = useState({}); // reg -> photo | null
+  const [modelPhotoCache, setModelPhotoCache] = useState({}); // type_code -> { photo, sourceReg }
 
   // UI state
   const [expandedAircraft, setExpandedAircraft] = useState(null);
@@ -48,7 +49,7 @@ export default function Stats({ apiBase }) {
   }, []);
 
   // Load aircraft photo
-  const loadPhotoForReg = async (reg) => {
+  const loadPhotoForReg = async (reg, typeCode) => {
     if (!reg || photoCache[reg] !== undefined) return;
 
     try {
@@ -56,9 +57,36 @@ export default function Stats({ apiBase }) {
       const data = await res.json();
       const photo = data?.photos?.length ? data.photos[0] : null;
       setPhotoCache((prev) => ({ ...prev, [reg]: photo }));
+
+      // If we got a photo and have a type_code, cache it for model fallback
+      if (photo && typeCode) {
+        setModelPhotoCache((prev) => {
+          if (!prev[typeCode]) {
+            return { ...prev, [typeCode]: { photo, sourceReg: reg } };
+          }
+          return prev;
+        });
+      }
     } catch {
       setPhotoCache((prev) => ({ ...prev, [reg]: null }));
     }
+  };
+
+  // Get best available photo for a flight (direct > model fallback > null)
+  const getBestPhoto = (reg, typeCode) => {
+    const directPhoto = photoCache[reg];
+    if (directPhoto?.thumbnail_large || directPhoto?.thumbnail) {
+      return { photo: directPhoto, isFallback: false, sourceReg: reg };
+    }
+
+    if (directPhoto === null && typeCode && modelPhotoCache[typeCode]) {
+      const fallback = modelPhotoCache[typeCode];
+      if (fallback.sourceReg !== reg) {
+        return { photo: fallback.photo, isFallback: true, sourceReg: fallback.sourceReg };
+      }
+    }
+
+    return null;
   };
 
   if (!summary || !summary24h) {
@@ -618,20 +646,49 @@ export default function Stats({ apiBase }) {
               {/* Aircraft Photo */}
               {expandedFlight.reg && (() => {
                 if (photoCache[expandedFlight.reg] === undefined) {
-                  loadPhotoForReg(expandedFlight.reg);
+                  loadPhotoForReg(expandedFlight.reg, expandedFlight.type_code);
                 }
-                const photo = photoCache[expandedFlight.reg];
-                return photo ? (
-                  <div className="flight-modal-photo">
-                    <img
-                      src={photo.thumbnail_large?.src || photo.thumbnail?.src}
-                      alt={`${expandedFlight.reg}`}
-                    />
-                    <div className="photo-credit">
-                      Photo: {photo.photographer} via Planespotters.net
+                const bestPhoto = getBestPhoto(expandedFlight.reg, expandedFlight.type_code);
+
+                if (bestPhoto) {
+                  return (
+                    <div className="flight-modal-photo">
+                      <img
+                        src={bestPhoto.photo.thumbnail_large?.src || bestPhoto.photo.thumbnail?.src}
+                        alt={bestPhoto.isFallback ? expandedFlight.type_code : expandedFlight.reg}
+                      />
+                      {bestPhoto.isFallback && (
+                        <div className="photo-fallback-notice">
+                          Same model, different aircraft
+                        </div>
+                      )}
+                      <div className="photo-credit">
+                        Photo: {bestPhoto.photo.photographer} via Planespotters.net
+                      </div>
                     </div>
-                  </div>
-                ) : null;
+                  );
+                }
+
+                // No photo found - show placeholder
+                if (photoCache[expandedFlight.reg] === null) {
+                  return (
+                    <div className="flight-modal-photo photo-placeholder">
+                      <svg
+                        className="plane-silhouette"
+                        viewBox="0 0 100 40"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M95 20 L75 20 L70 12 L65 12 L67 20 L35 20 L30 5 L25 5 L27 20 L10 20 L5 15 L3 15 L5 20 L3 25 L5 25 L10 20 L27 20 L25 35 L30 35 L35 20 L67 20 L65 28 L70 28 L75 20 L95 20 Z"
+                          fill="currentColor"
+                        />
+                      </svg>
+                      <span className="placeholder-text">No image found</span>
+                    </div>
+                  );
+                }
+
+                return null;
               })()}
 
               <div className="flight-modal-grid">
