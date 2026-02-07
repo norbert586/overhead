@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import "./app.css";
 import Stats from "./Stats";
 
-const API_BASE = "http://192.168.86.234:8080"; // your LAN IP
+const API_BASE = import.meta.env.VITE_API_BASE || "http://192.168.86.234:8080"; // your LAN IP
 
 export default function App() {
   const [flights, setFlights] = useState([]);
