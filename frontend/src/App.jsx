@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import "./app.css";
+import "./App.css";
 import Stats from "./Stats";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://192.168.86.234:8080"; // your LAN IP
@@ -9,6 +9,7 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [expandedId, setExpandedId] = useState(null); // null | "ALL" | flight.id
   const [photoCache, setPhotoCache] = useState({});   // reg -> photo | null
+  const [modelPhotoCache, setModelPhotoCache] = useState({}); // type_code -> { photo, sourceReg }
   const [view, setView] = useState("live");           // "live" | "stats"
   const [lastFetchMs, setLastFetchMs] = useState(Date.now());
   const [expandingAll, setExpandingAll] = useState(false);
@@ -158,7 +159,7 @@ export default function App() {
   /* -----------------------------
      Lazy aircraft photo loader
   ------------------------------ */
-  const loadPhotoForReg = async (reg) => {
+  const loadPhotoForReg = async (reg, typeCode) => {
     if (!reg) return;
     if (Object.prototype.hasOwnProperty.call(photoCache, reg)) return; // already fetched
 
@@ -168,9 +169,42 @@ export default function App() {
       const photo = data?.photos?.length ? data.photos[0] : null;
 
       setPhotoCache((prev) => ({ ...prev, [reg]: photo }));
+
+      // If we got a photo and have a type_code, cache it for model fallback
+      if (photo && typeCode) {
+        setModelPhotoCache((prev) => {
+          // Only set if we don't already have one for this model
+          if (!prev[typeCode]) {
+            return { ...prev, [typeCode]: { photo, sourceReg: reg } };
+          }
+          return prev;
+        });
+      }
     } catch {
       setPhotoCache((prev) => ({ ...prev, [reg]: null }));
     }
+  };
+
+  /* -----------------------------
+     Get best available photo for a flight
+     Returns: { photo, isFallback, sourceReg } | null
+  ------------------------------ */
+  const getBestPhoto = (reg, typeCode) => {
+    // First check direct registration match
+    if (photoCache[reg]?.thumbnail_large) {
+      return { photo: photoCache[reg], isFallback: false, sourceReg: reg };
+    }
+
+    // If no direct match but we've tried, check model fallback
+    if (photoCache[reg] === null && typeCode && modelPhotoCache[typeCode]) {
+      const fallback = modelPhotoCache[typeCode];
+      // Don't use fallback if it's the same reg (shouldn't happen, but safety check)
+      if (fallback.sourceReg !== reg) {
+        return { photo: fallback.photo, isFallback: true, sourceReg: fallback.sourceReg };
+      }
+    }
+
+    return null;
   };
 
   /* -----------------------------
@@ -188,14 +222,14 @@ export default function App() {
     setExpandingAll(true);
 
     // Use current filtered list at click-time (safe)
-    const regs = filtered
-      .map((f) => f.reg)
-      .filter(Boolean);
+    const flightData = filtered
+      .filter((f) => f.reg)
+      .map((f) => ({ reg: f.reg, typeCode: f.type_code }));
 
     // sequential load with a tiny delay (prevents hammering the API)
-    for (const reg of regs) {
+    for (const { reg, typeCode } of flightData) {
       if (!Object.prototype.hasOwnProperty.call(photoCache, reg)) {
-        await loadPhotoForReg(reg);
+        await loadPhotoForReg(reg, typeCode);
         await new Promise((r) => setTimeout(r, 220));
       }
     }
@@ -485,35 +519,61 @@ export default function App() {
                             {!Object.prototype.hasOwnProperty.call(photoCache, f.reg) && (
                               <button
                                 className="load-photo"
-                                onClick={() => loadPhotoForReg(f.reg)}
+                                onClick={() => loadPhotoForReg(f.reg, f.type_code)}
                               >
                                 Load aircraft photo
                               </button>
                             )}
 
-                            {photoCache[f.reg]?.thumbnail_large && (
-                              <div className="photo-wrapper">
-                                <img
-                                  src={photoCache[f.reg].thumbnail_large.src}
-                                  alt={`Aircraft ${f.reg}`}
-                                  loading="lazy"
-                                />
-                                <a
-                                  href={photoCache[f.reg].link}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="photo-credit"
-                                >
-                                  Photo via Planespotters
-                                </a>
-                              </div>
-                            )}
+                            {(() => {
+                              const bestPhoto = getBestPhoto(f.reg, f.type_code);
 
-                            {photoCache[f.reg] === null && (
-                              <div className="no-photo">
-                                No photo available
-                              </div>
-                            )}
+                              if (bestPhoto) {
+                                return (
+                                  <div className="photo-wrapper">
+                                    <img
+                                      src={bestPhoto.photo.thumbnail_large.src}
+                                      alt={`Aircraft ${bestPhoto.isFallback ? f.type_code : f.reg}`}
+                                      loading="lazy"
+                                    />
+                                    {bestPhoto.isFallback && (
+                                      <div className="photo-fallback-notice">
+                                        Same model, different aircraft
+                                      </div>
+                                    )}
+                                    <a
+                                      href={bestPhoto.photo.link}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="photo-credit"
+                                    >
+                                      Photo via Planespotters
+                                    </a>
+                                  </div>
+                                );
+                              }
+
+                              // No photo found at all - show placeholder
+                              if (photoCache[f.reg] === null) {
+                                return (
+                                  <div className="photo-placeholder">
+                                    <svg
+                                      className="plane-silhouette"
+                                      viewBox="0 0 100 40"
+                                      xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                      <path
+                                        d="M95 20 L75 20 L70 12 L65 12 L67 20 L35 20 L30 5 L25 5 L27 20 L10 20 L5 15 L3 15 L5 20 L3 25 L5 25 L10 20 L27 20 L25 35 L30 35 L35 20 L67 20 L65 28 L70 28 L75 20 L95 20 Z"
+                                        fill="currentColor"
+                                      />
+                                    </svg>
+                                    <span className="placeholder-text">No image found</span>
+                                  </div>
+                                );
+                              }
+
+                              return null;
+                            })()}
                           </div>
                         </div>
                       </div>

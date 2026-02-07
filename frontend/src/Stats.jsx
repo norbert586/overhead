@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import RouteMap from "./RouteMap";
 
+const LOGO_BASE = 'https://raw.githubusercontent.com/sexym0nk3y/airline-logos/main/logos';
+
 export default function Stats({ apiBase }) {
   const API = apiBase || "http://192.168.86.234:8080";
   const [summary, setSummary] = useState(null);
@@ -22,6 +24,10 @@ export default function Stats({ apiBase }) {
   // Modal for notable flights
   const [expandedFlight, setExpandedFlight] = useState(null);
   const [photoCache, setPhotoCache] = useState({}); // reg -> photo | null
+  const [modelPhotoCache, setModelPhotoCache] = useState({}); // type_code -> { photo, sourceReg }
+
+  // UI state
+  const [expandedAircraft, setExpandedAircraft] = useState(null);
 
   useEffect(() => {
     // Existing endpoints
@@ -43,7 +49,7 @@ export default function Stats({ apiBase }) {
   }, []);
 
   // Load aircraft photo
-  const loadPhotoForReg = async (reg) => {
+  const loadPhotoForReg = async (reg, typeCode) => {
     if (!reg || photoCache[reg] !== undefined) return;
 
     try {
@@ -51,22 +57,57 @@ export default function Stats({ apiBase }) {
       const data = await res.json();
       const photo = data?.photos?.length ? data.photos[0] : null;
       setPhotoCache((prev) => ({ ...prev, [reg]: photo }));
+
+      // If we got a photo and have a type_code, cache it for model fallback
+      if (photo && typeCode) {
+        setModelPhotoCache((prev) => {
+          if (!prev[typeCode]) {
+            return { ...prev, [typeCode]: { photo, sourceReg: reg } };
+          }
+          return prev;
+        });
+      }
     } catch {
       setPhotoCache((prev) => ({ ...prev, [reg]: null }));
     }
+  };
+
+  // Get best available photo for a flight (direct > model fallback > null)
+  const getBestPhoto = (reg, typeCode) => {
+    const directPhoto = photoCache[reg];
+    if (directPhoto?.thumbnail_large || directPhoto?.thumbnail) {
+      return { photo: directPhoto, isFallback: false, sourceReg: reg };
+    }
+
+    if (directPhoto === null && typeCode && modelPhotoCache[typeCode]) {
+      const fallback = modelPhotoCache[typeCode];
+      if (fallback.sourceReg !== reg) {
+        return { photo: fallback.photo, isFallback: true, sourceReg: fallback.sourceReg };
+      }
+    }
+
+    return null;
   };
 
   if (!summary || !summary24h) {
     return <div className="empty">Loading statistics…</div>;
   }
 
-  const maxHourly = Math.max(...hourly.map(h => h.events), 1);
+  // Fill all 24 hours (backend may skip hours with 0 events)
+  const allHours = Array.from({ length: 24 }, (_, i) => {
+    const hourStr = i.toString().padStart(2, '0');
+    const found = hourly.find(h => h.hour === hourStr);
+    return { hour: hourStr, events: found ? found.events : 0 };
+  });
+  const maxHourly = Math.max(...allHours.map(h => h.events), 1);
+
   const totalClassified = classificationDetailed.reduce((sum, c) => sum + c.total_count, 0);
   const maxAltitude = Math.max(...altitudeDistribution.map(a => a.count), 1);
   const maxAircraftType = Math.max(...aircraftTypes.map(a => a.event_count), 1);
   const maxDayActivity = Math.max(...activityByDay.map(d => d.events), 1);
+  const maxRouteCount = Math.max(...routes.map(r => r.event_count), 1);
 
-  // Calculate threat level based on government traffic (more conservative thresholds)
+  // Calculate threat level based on government traffic
   const govClassification = classificationDetailed.find(c => c.classification === 'government');
   const govCount24h = govClassification?.count_24h || 0;
   const threatLevel = govCount24h >= 15 ? 'HIGH' : govCount24h >= 8 ? 'ELEVATED' : 'NOMINAL';
@@ -152,15 +193,11 @@ export default function Stats({ apiBase }) {
         </div>
       </section>
 
-      {/* ROUTE MAP */}
-      <RouteMap apiBase={API} />
-
       {/* ALTITUDE DISTRIBUTION */}
       <section>
         <h3>ALTITUDE DISTRIBUTION</h3>
         <div className="altitude-grid">
           {altitudeDistribution.map(a => {
-            const percentage = ((a.count / summary.total_events) * 100).toFixed(1);
             const altLabels = {
               ground: 'GROUND',
               low: 'LOW (<10k ft)',
@@ -195,47 +232,50 @@ export default function Stats({ apiBase }) {
         </div>
       </section>
 
-      {/* HOURLY HISTOGRAM */}
+      {/* HOURLY ACTIVITY - VERTICAL BAR CHART */}
       <section>
         <h3>HOURLY ACTIVITY (LAST 24H)</h3>
-        <div className="hourly">
-          {hourly.map(h => (
-            <div key={h.hour} className="hour">
-              <span className="hour-label">{h.hour}</span>
-              <div className="hour-bar-container">
+        <div className="hourly-chart">
+          {allHours.map(h => (
+            <div key={h.hour} className="hourly-col">
+              <span className="hourly-value">{h.events || ''}</span>
+              <div className="hourly-track">
                 <div
-                  className="hour-bar"
-                  style={{ width: `${(h.events / maxHourly) * 100}%` }}
-                  title={`${h.events} events`}
+                  className="hourly-fill"
+                  style={{ height: `${(h.events / maxHourly) * 100}%` }}
                 />
               </div>
-              <span className="hour-count">{h.events}</span>
+              <span className="hourly-label">
+                {parseInt(h.hour) % 3 === 0 ? h.hour : ''}
+              </span>
             </div>
           ))}
         </div>
       </section>
 
-      {/* WEEKLY ACTIVITY PATTERN */}
+      {/* WEEKLY ACTIVITY PATTERN - FIXED */}
       {activityByDay.length > 0 && (
         <section>
           <h3>WEEKLY ACTIVITY PATTERN</h3>
           <div className="weekly-grid">
             {activityByDay.map(d => (
               <div key={d.day_num} className="day-item">
-                <span className="day-name">{d.day_name}</span>
-                <div
-                  className="day-bar"
-                  style={{ height: `${(d.events / maxDayActivity) * 100}%` }}
-                  title={`${d.events} events`}
-                />
                 <span className="day-count">{d.events}</span>
+                <div className="day-bar-wrapper">
+                  <div
+                    className="day-bar"
+                    style={{ height: `${(d.events / maxDayActivity) * 100}%` }}
+                    title={`${d.events} events`}
+                  />
+                </div>
+                <span className="day-name">{d.day_name}</span>
               </div>
             ))}
           </div>
         </section>
       )}
 
-      {/* TOP AIRCRAFT TYPES */}
+      {/* TOP AIRCRAFT TYPES - ENHANCED WITH MANUFACTURER */}
       <section>
         <h3>MOST COMMON AIRCRAFT TYPES</h3>
         <div className="aircraft-types-list">
@@ -243,8 +283,16 @@ export default function Stats({ apiBase }) {
             <div key={`${a.type_code}-${idx}`} className="aircraft-type-item">
               <div className="aircraft-type-header">
                 <span className="aircraft-rank">#{idx + 1}</span>
-                <span className="aircraft-type">{a.type_code}</span>
-                <span className="aircraft-model">{a.model || '—'}</span>
+                <div className="aircraft-type-info">
+                  <div className="aircraft-type-title">
+                    <span className="aircraft-type-code">{a.type_code}</span>
+                    <span className="aircraft-model-name">{a.model || '—'}</span>
+                  </div>
+                  {a.manufacturer && (
+                    <span className="aircraft-manufacturer">{a.manufacturer}</span>
+                  )}
+                </div>
+                <span className="aircraft-type-count">{a.event_count}</span>
               </div>
               <div className="aircraft-type-bar-container">
                 <div
@@ -316,53 +364,119 @@ export default function Stats({ apiBase }) {
         </div>
       </section>
 
-      {/* MOST SEEN AIRCRAFT */}
+      {/* MOST SEEN AIRCRAFT - CLICKABLE TILES */}
       <section>
         <h3>MOST SEEN AIRCRAFT</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Reg</th>
-              <th>Type</th>
-              <th>Operator</th>
-              <th>Seen</th>
-            </tr>
-          </thead>
-          <tbody>
-            {topAircraft.map(a => (
-              <tr key={a.reg}>
-                <td>{a.reg}</td>
-                <td>{a.model || a.type_code}</td>
-                <td>{a.operator}</td>
-                <td>{a.times_seen}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="aircraft-tiles">
+          {topAircraft.map((a, idx) => (
+            <div
+              key={a.reg}
+              className={`aircraft-tile ${expandedAircraft === a.reg ? 'expanded' : ''}`}
+              onClick={() => setExpandedAircraft(expandedAircraft === a.reg ? null : a.reg)}
+            >
+              <div className="tile-header">
+                <div className="tile-rank">#{idx + 1}</div>
+                <div className="tile-main">
+                  <span className="tile-reg">{a.reg}</span>
+                  <span className="tile-type">{a.model || a.type_code || '—'}</span>
+                </div>
+                <div className="tile-seen">
+                  <span className="tile-count">{a.times_seen}</span>
+                  <span className="tile-count-label">seen</span>
+                </div>
+              </div>
+              {expandedAircraft === a.reg && (
+                <div className="tile-details">
+                  {a.operator && (
+                    <div className="tile-detail-row">
+                      <span className="tile-label">Operator</span>
+                      <span className="tile-value">{a.operator}</span>
+                    </div>
+                  )}
+                  {a.manufacturer && (
+                    <div className="tile-detail-row">
+                      <span className="tile-label">Manufacturer</span>
+                      <span className="tile-value">{a.manufacturer}</span>
+                    </div>
+                  )}
+                  {a.type_code && (
+                    <div className="tile-detail-row">
+                      <span className="tile-label">Type Code</span>
+                      <span className="tile-value">{a.type_code}</span>
+                    </div>
+                  )}
+                  <div className="tile-detail-row">
+                    <span className="tile-label">Classification</span>
+                    <span className={`tile-classification ${a.classification || 'unknown'}`}>
+                      {(a.classification || 'unknown').toUpperCase()}
+                    </span>
+                  </div>
+                  {a.country_iso && (
+                    <div className="tile-detail-row">
+                      <span className="tile-label">Country</span>
+                      <span className="tile-value">
+                        <img
+                          src={`https://flagcdn.com/16x12/${a.country_iso.toLowerCase()}.png`}
+                          alt={a.country_iso}
+                          style={{ verticalAlign: 'middle', marginRight: 6 }}
+                        />
+                        {a.country_iso}
+                      </span>
+                    </div>
+                  )}
+                  {a.last_seen && (
+                    <div className="tile-detail-row">
+                      <span className="tile-label">Last Seen</span>
+                      <span className="tile-value">{new Date(a.last_seen + 'Z').toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </section>
 
+      {/* MOST ACTIVE OPERATORS - WITH LOGOS */}
       <section>
-        <h3>Most Active Operators</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Operator</th>
-              <th>Events</th>
-              <th>Aircraft</th>
-            </tr>
-          </thead>
-          <tbody>
-            {topOperators.map(o => (
-              <tr key={o.operator}>
-                <td>{o.operator}</td>
-                <td>{o.total_events}</td>
-                <td>{o.unique_aircraft}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <h3>MOST ACTIVE OPERATORS</h3>
+        <div className="operators-list">
+          {topOperators.map(o => (
+            <div key={o.operator} className="operator-item">
+              <div className="operator-logo-wrapper">
+                {o.icao_code ? (
+                  <img
+                    src={`${LOGO_BASE}/${o.icao_code}.png`}
+                    alt=""
+                    className="operator-logo"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextElementSibling && (e.target.nextElementSibling.style.display = 'flex');
+                    }}
+                  />
+                ) : null}
+                <div
+                  className="operator-logo-placeholder"
+                  style={{ display: o.icao_code ? 'none' : 'flex' }}
+                >
+                  {(o.operator || '?')[0]}
+                </div>
+              </div>
+              <div className="operator-info">
+                <span className="operator-name">{o.operator}</span>
+                <div className="operator-meta">
+                  <span>{o.total_events} events</span>
+                  <span className="stat-sep">•</span>
+                  <span>{o.unique_aircraft} aircraft</span>
+                </div>
+              </div>
+              <div className="operator-event-count">{o.total_events}</div>
+            </div>
+          ))}
+        </div>
       </section>
 
+      {/* COUNTRIES OVERHEAD */}
       <section>
         <h3>Countries Overhead</h3>
         <table>
@@ -391,6 +505,9 @@ export default function Stats({ apiBase }) {
           </tbody>
         </table>
       </section>
+
+      {/* ROUTE MAP - collapsible, built-in show/hide */}
+      <RouteMap apiBase={API} />
 
       <section>
         <h3>TOP FLIGHT ROUTES</h3>
@@ -529,20 +646,49 @@ export default function Stats({ apiBase }) {
               {/* Aircraft Photo */}
               {expandedFlight.reg && (() => {
                 if (photoCache[expandedFlight.reg] === undefined) {
-                  loadPhotoForReg(expandedFlight.reg);
+                  loadPhotoForReg(expandedFlight.reg, expandedFlight.type_code);
                 }
-                const photo = photoCache[expandedFlight.reg];
-                return photo ? (
-                  <div className="flight-modal-photo">
-                    <img
-                      src={photo.thumbnail_large?.src || photo.thumbnail?.src}
-                      alt={`${expandedFlight.reg}`}
-                    />
-                    <div className="photo-credit">
-                      Photo: {photo.photographer} via Planespotters.net
+                const bestPhoto = getBestPhoto(expandedFlight.reg, expandedFlight.type_code);
+
+                if (bestPhoto) {
+                  return (
+                    <div className="flight-modal-photo">
+                      <img
+                        src={bestPhoto.photo.thumbnail_large?.src || bestPhoto.photo.thumbnail?.src}
+                        alt={bestPhoto.isFallback ? expandedFlight.type_code : expandedFlight.reg}
+                      />
+                      {bestPhoto.isFallback && (
+                        <div className="photo-fallback-notice">
+                          Same model, different aircraft
+                        </div>
+                      )}
+                      <div className="photo-credit">
+                        Photo: {bestPhoto.photo.photographer} via Planespotters.net
+                      </div>
                     </div>
-                  </div>
-                ) : null;
+                  );
+                }
+
+                // No photo found - show placeholder
+                if (photoCache[expandedFlight.reg] === null) {
+                  return (
+                    <div className="flight-modal-photo photo-placeholder">
+                      <svg
+                        className="plane-silhouette"
+                        viewBox="0 0 100 40"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M95 20 L75 20 L70 12 L65 12 L67 20 L35 20 L30 5 L25 5 L27 20 L10 20 L5 15 L3 15 L5 20 L3 25 L5 25 L10 20 L27 20 L25 35 L30 35 L35 20 L67 20 L65 28 L70 28 L75 20 L95 20 Z"
+                          fill="currentColor"
+                        />
+                      </svg>
+                      <span className="placeholder-text">No image found</span>
+                    </div>
+                  );
+                }
+
+                return null;
               })()}
 
               <div className="flight-modal-grid">

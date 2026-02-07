@@ -471,6 +471,44 @@ html, body {
   color: var(--muted);
 }
 
+.photo-fallback-notice {
+  margin-top: 6px;
+  padding: 4px 8px;
+  font-size: 10px;
+  color: var(--accent);
+  background: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.25);
+  border-radius: 3px;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.photo-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 200px;
+  height: 120px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.6) 100%);
+  border: 1px dashed rgba(148, 163, 184, 0.25);
+  border-radius: 4px;
+}
+
+.plane-silhouette {
+  width: 80px;
+  height: 32px;
+  color: rgba(148, 163, 184, 0.3);
+  margin-bottom: 8px;
+}
+
+.placeholder-text {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+  opacity: 0.7;
+}
+
 .seen-indicator {
   margin-left: 6px;
   color: var(--accent);
@@ -658,43 +696,64 @@ th {
   background: var(--accent);
 }
 
-.hourly {
-  display: grid;
-  gap: 4px;
-  max-width: 600px;
+/* Hourly Activity - Vertical Bar Chart */
+.hourly-chart {
+  display: flex;
+  gap: 2px;
+  height: 200px;
+  padding: 8px 4px 4px;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
 }
 
-.hour {
-  display: grid;
-  grid-template-columns: 24px 1fr 36px;
+.hourly-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
+  height: 100%;
+  min-width: 0;
+  cursor: default;
 }
 
-.hour-label {
-  font-size: 11px;
-  opacity: 0.7;
-  text-align: right;
+.hourly-value {
+  font-size: 9px;
+  color: var(--accent);
+  font-weight: 600;
+  height: 14px;
+  opacity: 0;
+  transition: opacity 150ms ease;
 }
 
-.hour-bar-container {
+.hourly-col:hover .hourly-value {
+  opacity: 1;
+}
+
+.hourly-track {
+  flex: 1;
   width: 100%;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
+  padding: 0 1px;
 }
 
-.hour-bar {
-  height: 8px;
-  background: #5da9ff;
-  border-radius: 2px;
-  min-width: 2px;
-  transition: width 500ms ease;
+.hourly-fill {
+  width: 100%;
+  background: linear-gradient(180deg, rgba(100, 140, 255, 0.9) 0%, rgba(100, 140, 255, 0.35) 100%);
+  border-radius: 2px 2px 0 0;
+  min-height: 2px;
+  transition: height 500ms ease;
 }
 
-.hour-count {
-  font-size: 11px;
+.hourly-col:hover .hourly-fill {
+  background: linear-gradient(180deg, var(--accent) 0%, rgba(234, 179, 8, 0.5) 100%);
+}
+
+.hourly-label {
+  font-size: 9px;
   color: var(--muted);
-  text-align: right;
+  margin-top: 4px;
+  height: 12px;
 }
 
 /* ============================
@@ -898,7 +957,6 @@ th {
   grid-template-columns: repeat(7, 1fr);
   gap: 12px;
   height: 180px;
-  align-items: flex-end;
   padding: 12px;
   background: var(--panel-soft);
   border: 1px solid var(--line);
@@ -908,48 +966,55 @@ th {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   height: 100%;
-}
-
-.day-name {
-  font-size: 11px;
-  color: var(--muted);
-  letter-spacing: 0.04em;
-  order: 3;
-}
-
-.day-bar {
-  width: 100%;
-  background: linear-gradient(180deg, var(--accent) 0%, rgba(234,179,8,0.5) 100%);
-  border-radius: 2px 2px 0 0;
-  min-height: 4px;
-  transition: height 500ms ease;
-  order: 2;
 }
 
 .day-count {
   font-size: 10px;
   color: var(--fg);
   font-weight: 600;
-  order: 1;
+  flex-shrink: 0;
 }
 
-/* Aircraft Types List */
+.day-bar-wrapper {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.day-bar {
+  width: 70%;
+  background: linear-gradient(180deg, var(--accent) 0%, rgba(234,179,8,0.5) 100%);
+  border-radius: 2px 2px 0 0;
+  min-height: 4px;
+  transition: height 500ms ease;
+}
+
+.day-name {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+/* Aircraft Types List - Enhanced */
 .aircraft-types-list {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .aircraft-type-item {
   background: var(--panel-soft);
   border: 1px solid var(--line);
-  padding: 10px;
+  padding: 10px 12px;
 }
 
 .aircraft-type-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   margin-bottom: 6px;
 }
@@ -958,22 +1023,51 @@ th {
   font-size: 11px;
   color: var(--muted);
   min-width: 24px;
+  padding-top: 2px;
 }
 
-.aircraft-type {
+.aircraft-type-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.aircraft-type-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.aircraft-type-code {
   font-size: 14px;
   font-weight: 700;
   color: var(--accent);
-  min-width: 60px;
 }
 
-.aircraft-model {
+.aircraft-model-name {
   font-size: 12px;
   color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aircraft-manufacturer {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+.aircraft-type-count {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  flex-shrink: 0;
 }
 
 .aircraft-type-bar-container {
-  height: 6px;
+  height: 4px;
   background: rgba(255,255,255,0.05);
   border-radius: 2px;
   overflow: hidden;
@@ -1255,10 +1349,361 @@ th {
   text-align: right;
 }
 
+/* Modal placeholder styling */
+.flight-modal-photo.photo-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 160px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.6) 100%);
+  border: 1px dashed rgba(148, 163, 184, 0.25);
+}
+
+.flight-modal-photo .plane-silhouette {
+  width: 100px;
+  height: 40px;
+  color: rgba(148, 163, 184, 0.3);
+  margin-bottom: 12px;
+}
+
+.flight-modal-photo .placeholder-text {
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+  opacity: 0.7;
+}
+
 .route-flag {
   margin-left: 6px;
   vertical-align: middle;
   opacity: 0.9;
+}
+
+/* ============================
+   MOST SEEN AIRCRAFT - TILES
+============================ */
+.aircraft-tiles {
+  display: grid;
+  gap: 6px;
+}
+
+.aircraft-tile {
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.aircraft-tile:hover {
+  border-color: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.02);
+}
+
+.aircraft-tile.expanded {
+  border-color: rgba(234, 179, 8, 0.3);
+}
+
+.tile-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tile-rank {
+  font-size: 11px;
+  color: var(--muted);
+  min-width: 24px;
+}
+
+.tile-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.tile-reg {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.tile-type {
+  font-size: 11px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tile-seen {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.tile-count {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.tile-count-label {
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+.tile-details {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 6px 12px;
+  font-size: 11px;
+}
+
+.tile-detail-row {
+  display: contents;
+}
+
+.tile-label {
+  color: var(--muted);
+}
+
+.tile-value {
+  color: var(--fg);
+}
+
+.tile-classification {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 2px;
+  display: inline-block;
+  background: rgba(255,255,255,0.08);
+  color: var(--muted);
+}
+
+.tile-classification.commercial {
+  background: rgba(100, 140, 255, 0.15);
+  color: rgba(100, 140, 255, 0.95);
+}
+
+.tile-classification.private {
+  background: rgba(234, 179, 8, 0.15);
+  color: rgba(234, 179, 8, 0.95);
+}
+
+.tile-classification.government {
+  background: rgba(220, 80, 80, 0.15);
+  color: rgba(220, 80, 80, 0.95);
+}
+
+.tile-classification.cargo {
+  background: rgba(139, 92, 246, 0.15);
+  color: rgba(139, 92, 246, 0.95);
+}
+
+/* ============================
+   OPERATORS LIST - WITH LOGOS
+============================ */
+.operators-list {
+  display: grid;
+  gap: 6px;
+}
+
+.operator-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+}
+
+.operator-logo-wrapper {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.operator-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.06);
+}
+
+.operator-logo-placeholder {
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.operator-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.operator-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg);
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.operator-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.operator-event-count {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* ============================
+   MAP DRAWER
+============================ */
+.map-drawer-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 10px 12px;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  transition: background 150ms ease;
+}
+
+.map-drawer-toggle:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+.map-drawer-toggle h3 {
+  margin: 0;
+}
+
+.map-drawer-arrow {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+/* ============================
+   ROUTES LIST - COMPACT
+============================ */
+.routes-list {
+  display: grid;
+  gap: 4px;
+}
+
+.route-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  padding: 8px 12px;
+}
+
+.route-rank {
+  font-size: 10px;
+  color: var(--muted);
+  min-width: 22px;
+  flex-shrink: 0;
+}
+
+.route-pair {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.route-endpoint {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+}
+
+.route-iata {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg);
+  flex-shrink: 0;
+}
+
+.route-city {
+  font-size: 10px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-arrow {
+  font-size: 10px;
+  color: var(--muted);
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.route-count-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+  min-width: 60px;
+}
+
+.route-count {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.route-bar-track {
+  width: 60px;
+  height: 3px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.route-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 500ms ease;
 }
 
 /* ============================
@@ -1422,6 +1867,55 @@ th {
   .weekly-grid {
     height: 120px;
     gap: 6px;
+  }
+
+  /* Hourly chart */
+  .hourly-chart {
+    height: 150px;
+  }
+
+  .hourly-value {
+    font-size: 8px;
+  }
+
+  .hourly-label {
+    font-size: 8px;
+  }
+
+  /* Aircraft tiles */
+  .tile-main {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .tile-details {
+    grid-template-columns: 80px 1fr;
+  }
+
+  /* Route items */
+  .route-city {
+    display: none;
+  }
+
+  .route-item {
+    padding: 6px 10px;
+  }
+
+  /* Operator items */
+  .operator-logo-wrapper {
+    width: 28px;
+    height: 28px;
+  }
+
+  .operator-logo {
+    width: 28px;
+    height: 28px;
+  }
+
+  .operator-logo-placeholder {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
   }
 }
 

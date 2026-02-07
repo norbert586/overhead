@@ -69,7 +69,6 @@ export default function RouteMap({ apiBase }) {
   useEffect(() => {
     if (!mapInstanceRef.current || !layerGroupRef.current) return;
 
-    // Clear existing routes
     layerGroupRef.current.clearLayers();
 
     if (routes.length === 0) return;
@@ -84,26 +83,37 @@ export default function RouteMap({ apiBase }) {
 
       bounds.push(...positions);
 
-      // Determine line color based on classification
       const getRouteColor = (classifications) => {
         if (!classifications) return "#9aa4b2";
         const cls = classifications.toLowerCase();
-        if (cls.includes("government")) return "rgba(220, 80, 80, 0.8)";
-        if (cls.includes("cargo")) return "rgba(139, 92, 246, 0.8)";
-        if (cls.includes("commercial")) return "rgba(100, 140, 255, 0.8)";
-        if (cls.includes("private")) return "rgba(234, 179, 8, 0.8)";
+        if (cls.includes("government")) return "rgba(220, 80, 80, 0.85)";
+        if (cls.includes("cargo")) return "rgba(139, 92, 246, 0.85)";
+        if (cls.includes("commercial")) return "rgba(100, 140, 255, 0.85)";
+        if (cls.includes("private")) return "rgba(234, 179, 8, 0.85)";
         return "#9aa4b2";
       };
 
-      // Calculate line thickness based on flight count
       const getRouteWeight = (count) => {
-        return Math.min(Math.log(count + 1) * 2, 8);
+        return Math.min(1 + Math.log(count + 1) * 0.5, 3);
       };
 
+      const color = getRouteColor(route.classifications);
+
+      // Subtle glow layer underneath
+      const glowLine = L.polyline(positions, {
+        color: color,
+        weight: getRouteWeight(route.flight_count) + 3,
+        opacity: 0.1,
+        interactive: false
+      });
+      layerGroupRef.current.addLayer(glowLine);
+
+      // Main route line
       const polyline = L.polyline(positions, {
-        color: getRouteColor(route.classifications),
+        color: color,
         weight: getRouteWeight(route.flight_count),
-        opacity: 0.7
+        opacity: 0.75,
+        dashArray: '6 3'
       });
 
       const popupContent = `
@@ -126,7 +136,6 @@ export default function RouteMap({ apiBase }) {
       layerGroupRef.current.addLayer(polyline);
     });
 
-    // Fit map to bounds
     if (bounds.length > 0) {
       mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] });
     }
