@@ -4,7 +4,7 @@ import RouteMap from "./RouteMap";
 const LOGO_BASE = 'https://raw.githubusercontent.com/sexym0nk3y/airline-logos/main/logos';
 
 export default function Stats({ apiBase }) {
-  const API = apiBase || "http://192.168.86.234:8080";
+  const API = apiBase ?? "";
   const [summary, setSummary] = useState(null);
   const [summary24h, setSummary24h] = useState(null);
   const [classificationDetailed, setClassificationDetailed] = useState([]);

@@ -1,0 +1,20 @@
+services:
+  overhead:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - overhead_data:/data
+    environment:
+      # --- Location (required — set these to your coordinates) ---
+      - ME_LAT=42.7077
+      - ME_LON=-83.0315
+      # --- Tuning (optional) ---
+      - RADIUS_NM=50
+      - POLL_SECONDS=12
+      - EVENT_WINDOW_MINUTES=20
+      - DB_PATH=/data/flight_log.db
+    restart: unless-stopped
+
+volumes:
+  overhead_data:
