@@ -1,0 +1,21 @@
+# Python
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.Python
+
+# Node / frontend dev artifacts
+frontend/node_modules
+frontend/.vite
+
+# Local data / secrets
+backend/data
+backend/.env
+
+# Git
+.git
+.gitignore
+
+# Docs
+*.md

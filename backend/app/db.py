@@ -1,3 +1,4 @@
+import os
 import sqlite3
 from datetime import datetime
 from typing import Dict, Any
@@ -20,6 +21,11 @@ def _connect():
 # ============================================================
 
 def init_db() -> None:
+    # Ensure the directory for the SQLite file exists
+    db_dir = os.path.dirname(DB_PATH)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
+
     conn = _connect()
     cur = conn.cursor()
 

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import Stats from "./Stats";
 
-const API_BASE = "http://192.168.86.234:8080"; // your LAN IP
+const API_BASE = ""; // relative URLs — works for both dev (Vite proxy) and production
 
 export default function App() {
   const [flights, setFlights] = useState([]);
