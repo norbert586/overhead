@@ -732,7 +732,7 @@ export default function Stats({ apiBase }) {
                 <span className="value">{expandedFlight.times_seen}</span>
 
                 <span className="label">Last Seen</span>
-                <span className="value">{expandedFlight.last_seen || '—'}</span>
+                <span className="value">{expandedFlight.last_seen ? new Date(expandedFlight.last_seen + 'Z').toLocaleString() : '—'}</span>
               </div>
             </div>
           </div>
