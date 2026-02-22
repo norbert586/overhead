@@ -4,6 +4,11 @@ import Stats from "./Stats";
 
 const API_BASE = ""; // relative URLs — works for both dev (Vite proxy) and production
 
+// Railway/server runs in UTC but stores timestamps without a timezone suffix.
+// Appending "Z" tells JavaScript to treat the string as UTC so toLocaleTimeString
+// converts it correctly to the viewer's local timezone.
+const asUTC = (s) => (s && !s.endsWith("Z") && !s.includes("+") ? s + "Z" : s);
+
 export default function App() {
   const [flights, setFlights] = useState([]);
   const [query, setQuery] = useState("");
@@ -395,7 +400,7 @@ export default function App() {
 
                 // row age fade
                 const ageSec =
-                  (Date.now() - new Date(f.last_seen).getTime()) / 1000;
+                  (Date.now() - new Date(asUTC(f.last_seen)).getTime()) / 1000;
 
                 const isFresh = ageSec < 8;
 
@@ -417,7 +422,7 @@ export default function App() {
                       }}
                     >
                       <span className="time">
-                        {new Date(f.last_seen).toLocaleTimeString([], {
+                        {new Date(asUTC(f.last_seen)).toLocaleTimeString([], {
                           hour: "2-digit",
                           minute: "2-digit",
                           second: "2-digit",
